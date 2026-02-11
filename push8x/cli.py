@@ -10,7 +10,7 @@ from .constans import (
     DEFAULT_WEBHOOK_HOST,
     DEFAULT_WEBHOOK_PORT,
 )
-from .server import main as server_main
+from .serve import main as serve_main
 
 app = typer.Typer()
 
@@ -53,4 +53,4 @@ def serve(
 
     config.server_http.host = webhook_host
     config.server_smtp.host = smtpd_host
-    server_main(config)
+    serve_main(config)

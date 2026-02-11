@@ -1,12 +1,14 @@
+from logging import getLogger
+
 import apprise
 
-from push8x.sender.common import SenderAbc
-
 from ..task import Task, TaskQueue
+from .common import SenderAbc
+
+logger = getLogger(__name__)
 
 
 class SenderApprise(SenderAbc):
-
     def __init__(self, sender_q: TaskQueue) -> None:
         super().__init__(sender_q=sender_q)
 
@@ -18,4 +20,5 @@ class SenderApprise(SenderAbc):
     async def worker(self):
         while True:
             task = await self.q.get()
+            logger.debug(f"got task: {task}")
             self._do_task(task)

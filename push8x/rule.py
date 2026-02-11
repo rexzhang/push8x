@@ -1,8 +1,11 @@
 import fnmatch
+from logging import getLogger
 
 from .config import Config, Rule
 from .sender.common import SenderQueueMapping
 from .task import Task, TaskQueue
+
+logger = getLogger(__name__)
 
 
 def match_sender_apply_rule_to_task(rules: list[Rule], task: Task):
@@ -49,6 +52,8 @@ class RuleMatcher:
         # TODO: 3.13+ 使用 QueueShutDown
         while True:
             task = await self.q.get()
+            logger.debug(f"got task: {task}")
+
             for sender_name, new_task in match_sender_apply_rule_to_task(
                 self.config.rules, task
             ):

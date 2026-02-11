@@ -10,7 +10,7 @@ DEFAULT_SMTPD_PORT = 8025
 
 
 class ReceiverType(Enum):
-    SMTP = "smtp"
+    SMTPD = "smtpd"
     WEBHOOK = "webhook"
 
 

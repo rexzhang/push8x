@@ -1,55 +1,28 @@
 import asyncio
 import logging
+import logging.config
 import sys
 from collections.abc import Coroutine
 from logging import getLogger
 
-import uvicorn
-
 from .config import Config
 from .constans import SenderType
-from .receiver.smtp import receiver_smtp_worker
+from .receiver.smtpd import ReceiverSmtpd
+from .receiver.webhook import ReceiverWebhook
 from .rule import RuleMatcher
 from .sender.apprise import SenderApprise
 from .sender.common import SenderQueueMapping
 from .task import TaskQueue
 
-logger = getLogger(__file__)
-
-
-async def simple_asgi_app(scope, receive, send):
-    if scope["type"] != "http":
-        return
-
-    await send(
-        {
-            "type": "http.response.start",
-            "status": 200,
-            "headers": [[b"content-type", b"text/plain"]],
-        }
-    )
-
-    await send(
-        {
-            "type": "http.response.body",
-            "body": b"Hello from Native ASGI! SMTP is also running.",
-        }
-    )
-
-
-async def receiver_webhook_worker():
-    config = uvicorn.Config(app=simple_asgi_app, host="0.0.0.0", port=8000)
-    server = uvicorn.Server(config)
-    await server.serve()
+logger = getLogger(__name__)
 
 
 async def server(config: Config):
-    # workers: list[Coroutine] = list()
+    workers: list[Coroutine] = list()
 
     # init senders
-    sender_list = list()
     sender_q_mapping: SenderQueueMapping = dict()
-    sender_worker_list: list[Coroutine] = list()
+    sender_list = list()
     for sender in config.senders:
         sender_q = TaskQueue()
 
@@ -61,7 +34,7 @@ async def server(config: Config):
                 raise
 
         sender_list.append(sender_obj)
-        sender_worker_list.append(sender_obj.worker())
+        workers.append(sender_obj.worker())
         sender_q_mapping[sender.name] = sender_q
 
     # init rule matcher
@@ -69,27 +42,62 @@ async def server(config: Config):
     rule_matcher = RuleMatcher(
         config=config, q=rule_matcher_q, sender_q_mapping=sender_q_mapping
     )
+    workers.append(rule_matcher.worker())
+
+    # init receivers
+    receiver_smtpd = ReceiverSmtpd(config=config, rule_matcher_q=rule_matcher_q)
+    workers.append(receiver_smtpd.worker())
+
+    receiver_webhook = ReceiverWebhook(config=config, rule_matcher_q=rule_matcher_q)
+    workers.append(receiver_webhook.worker())
 
     print(
         f"正在启动服务 (HTTP: {config.server_http.host}:{config.server_http.port}, SMTP: {config.server_smtp.host}:{config.server_smtp.port}..."
     )
-    await asyncio.gather(
-        # receiver_webhook_worker(),
-        receiver_smtp_worker(config, rule_matcher_q),
-        rule_matcher.worker(),
-        *sender_worker_list,
-    )
+    await asyncio.gather(*workers)
 
 
 def main(config: Config):
     if config.common.debug:
-        logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+        logging_level = logging.DEBUG
     else:
-        logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+        logging_level = logging.INFO
+
+    logging.basicConfig(stream=sys.stdout, level=logging_level)
+    logging.config.dictConfig(
+        {
+            "version": 1,
+            "disable_existing_loggers": False,
+            "loggers": {
+                # standard lib
+                "mail": {
+                    "level": "WARNING",
+                },
+                "urllib3": {
+                    "level": "WARNING",
+                },
+                # 3rd lib ---
+                # --- receiver
+                "uvicorn": {
+                    "level": "WARNING",
+                },
+                "aiosmtpd": {
+                    "level": "WARNING",
+                },
+                "mailparser": {
+                    "level": "WARNING",
+                },
+                # --- sender
+                "apprise": {
+                    "level": "WARNING",
+                },
+            },
+        }
+    )
 
     if config.common.sentry_dsn:
         try:
-            import sentry_sdk  # type: ignore
+            import sentry_sdk
             from sentry_sdk.integrations.asyncio import AsyncioIntegration
 
             sentry_sdk.init(

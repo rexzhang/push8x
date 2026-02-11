@@ -10,7 +10,7 @@ from dataclass_wizard import JSONPyWizard
 
 from .constans import ReceiverType, SenderType
 
-logger = getLogger(__file__)
+logger = getLogger(__name__)
 
 
 @dataclass
@@ -35,13 +35,13 @@ class ServerHttp:
 @dataclass
 class ReceiverSmtp(JSONPyWizard):
     class _(JSONPyWizard.Meta):
-        tag = ReceiverType.SMTP.value
+        tag = ReceiverType.SMTPD.value
 
     enable: bool = True
 
     @property
     def name(self) -> str:
-        return ReceiverType.SMTP.value
+        return ReceiverType.SMTPD.value
 
 
 @dataclass
