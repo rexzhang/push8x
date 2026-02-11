@@ -1,0 +1,6 @@
+-r base.txt
+-r docker.txt
+
+-r mypy.txt
+fabric
+icecream

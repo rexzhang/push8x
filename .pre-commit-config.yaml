@@ -1,0 +1,25 @@
+repos:
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.21.2
+    hooks:
+      - id: pyupgrade
+        args: ["--py312-plus"]
+  - repo: https://github.com/psf/black
+    rev: 26.1.0
+    hooks:
+      - id: black
+        args: ["--target-version", "py312"]
+  - repo: https://github.com/pycqa/isort
+    rev: 7.0.0
+    hooks:
+      - id: isort
+        name: isort (python)
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.3.0
+    hooks:
+      - id: flake8
+        # https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html#flake8
+        # E203 Whitespace before ':'
+        # E501 line too long
+        # E704 Multiple statements on one line (def)
+        args: ["--extend-ignore", "E203 E501 E704"]

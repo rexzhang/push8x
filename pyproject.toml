@@ -1,0 +1,60 @@
+# PEP 508 – Dependency specification for Python Software Packages
+# - https://peps.python.org/pep-0508/
+# PEP 621 – Storing project metadata in pyproject.toml
+# - https://peps.python.org/pep-0621/
+#
+# - https://packaging.python.org/en/latest/guides/writing-pyproject-toml/
+# - https://packaging.python.org/en/latest/specifications/pyproject-toml
+# - https://build.pypa.io/en/stable/release.html
+
+[project]
+name = "push8x"
+description = "An push notification route server implementation, support from:smtp/webhook to:smtp/webhook/apprise."
+readme = "README.md"
+requires-python = ">=3.12"
+license-files = ["LICENSE"]
+authors = [{ name = "Rex Zhang" }, { email = "rex.zhang@gmail.com" }]
+keywords = ["push-notification", "notification", "smtp", "email", "webhook", "apprise", "asyncio"]
+
+dynamic = ["version", "dependencies"]
+
+[project.urls]
+documentation = "https://rexzhang.github.io/push8x/"
+repository = "https://github.com/rexzhang/push8x"
+changelog = "https://github.com/rexzhang/push8x/blob/main/CHANGELOG.md"
+
+[project.scripts]
+push8x = "push8x.cli:main"
+
+[build-system]
+# https://setuptools.pypa.io/en/latest/userguide/quickstart.html
+# https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html
+requires = ["setuptools >= 61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["push8x"]
+
+[tool.setuptools.dynamic]
+version = { attr = "push8x.__version__" }
+dependencies = { file = "requirements.d/base.txt" }
+
+[tool.pytest.ini_options]
+pythonpath = "."
+addopts = "--cov=push8x --cov-report html"
+asyncio_mode = "auto"
+
+[tool.isort]
+profile = "black"
+
+[tool.mypy]
+python_version = "3.12"
+files = ["push8x/"]
+
+strict = true
+strict_bytes = true
+
+warn_return_any = true
+warn_unused_configs = true
+
+disable_error_code = ["import-untyped"]

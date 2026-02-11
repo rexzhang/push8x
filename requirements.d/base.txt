@@ -1,0 +1,17 @@
+# asyncio
+uvloop
+uvicorn
+
+# notification process
+aiosmtpd
+mail-parser
+httpx
+apprise
+
+# config
+mashumaro
+dataclass-wizard[dotenv]
+
+# CLI
+typer
+
