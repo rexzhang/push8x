@@ -4,6 +4,7 @@ import uvicorn
 
 from ..config import Config
 from ..constans import Msg, MsgContentType, MsgQueue, ReceiverType
+from ..worker import worker_guardian
 from .common import ReceiverAbc
 
 logger = getLogger(__name__)
@@ -55,6 +56,7 @@ class ReceiverWebhook(ReceiverAbc):
 
         self.type = ReceiverType.WEBHOOK
 
+    @worker_guardian()
     async def worker_recevier(self):
         server = uvicorn.Server(
             uvicorn.Config(

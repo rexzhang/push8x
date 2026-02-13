@@ -3,6 +3,7 @@ from logging import getLogger
 import apprise
 
 from ..constans import Msg, MsgContentType
+from ..worker import worker_guardian
 from .common import SenderAbc
 
 logger = getLogger(__name__)
@@ -21,6 +22,7 @@ class SenderApprise(SenderAbc):
                 body_format = apprise.NotifyFormat.MARKDOWN
         ap.notify(body=msg.content, title=msg.title, body_format=body_format)
 
+    @worker_guardian()
     async def worker(self):
         while True:
             msg = await self.q.get()

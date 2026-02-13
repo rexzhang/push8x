@@ -6,13 +6,14 @@ from collections.abc import Coroutine
 from logging import getLogger
 
 from .config import Config
-from .constans import MsgQueue, SenderType
+from .constans import MsgQueue, SenderQueueMapping, SenderType
 from .receiver.smtpd import ReceiverSmtpd
 from .receiver.webhook import ReceiverWebhook
 from .rule import RuleMatcher
 from .sender.apprise import SenderApprise
-from .sender.balckhole import SenderBlackhold
-from .sender.common import SenderQueueMapping
+from .sender.balckhole import SenderBlackhole
+from .sender.smtp import SenderSmtp
+from .sender.webhook import SenderWebhook
 
 logger = getLogger(__name__)
 
@@ -56,7 +57,11 @@ async def server(config: Config):
 
         match sender.type:
             case SenderType.BALCKHOLE:
-                sender_obj = SenderBlackhold(sender_q=sender_q)
+                sender_obj = SenderBlackhole(sender_q=sender_q)
+            case SenderType.WEBHOOK:
+                sender_obj = SenderWebhook(sender_q=sender_q)
+            case SenderType.SMTP:
+                sender_obj = SenderSmtp(sender_q=sender_q)
             case SenderType.APPRISE:
                 sender_obj = SenderApprise(sender_q=sender_q)
 

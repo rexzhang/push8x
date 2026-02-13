@@ -57,11 +57,28 @@ class ReceiverWebhook(JSONPyWizard):
 
 @dataclass
 class SenderAbc:
-    name: str
+    type: SenderType
+    name: str = field(init=False)
 
-    @property
-    def type(self) -> SenderType:
-        raise NotImplementedError
+    def __post_init__(self):
+        if not hasattr(self, "name"):
+            self.name = self.type.value
+
+
+@dataclass
+class SenderBlackhole(SenderAbc, JSONPyWizard):
+    class _(JSONPyWizard.Meta):
+        tag = SenderType.BALCKHOLE.value
+
+    enable: bool = True
+
+
+@dataclass
+class SenderWebhook(SenderAbc, JSONPyWizard):
+    class _(JSONPyWizard.Meta):
+        tag = SenderType.WEBHOOK.value
+
+    enable: bool = True
 
 
 @dataclass
@@ -74,24 +91,11 @@ class SenderSmtp(SenderAbc, JSONPyWizard):
 
 
 @dataclass
-class SenderWebhook(SenderAbc, JSONPyWizard):
-    class _(JSONPyWizard.Meta):
-        tag = SenderType.APPRISE.value
-
-    enable: bool = True
-
-
-@dataclass
 class SenderApprise(SenderAbc, JSONPyWizard):
     class _(JSONPyWizard.Meta):
         tag = SenderType.APPRISE.value
 
-    @property
-    def type(self) -> SenderType:
-        return SenderType.APPRISE
-
     enable: bool = True
-    name: str = SenderType.APPRISE.value  # default sender，only one instance
 
 
 @dataclass
@@ -121,7 +125,7 @@ class Config(JSONPyWizard):
 
     receiver: list[ReceiverSmtp | ReceiverWebhook] = field(default_factory=list)
 
-    senders: list[SenderSmtp | SenderWebhook | SenderApprise] = field(
+    senders: list[SenderBlackhole | SenderWebhook | SenderSmtp | SenderApprise] = field(
         default_factory=list
     )
 
@@ -129,11 +133,23 @@ class Config(JSONPyWizard):
     fallback_rules: list[Rule] = field(default_factory=list)
 
     def _complete_config(self) -> None:
-        pass
+        # add default senders
+        has_sender_blackhole = False
+        has_sender_apprise = False
+        for sender in self.senders:
+            if isinstance(sender, SenderBlackhole):
+                has_sender_blackhole = True
+            elif isinstance(sender, SenderApprise):
+                has_sender_apprise = True
+
+        if not has_sender_blackhole:
+            self.senders.append(SenderBlackhole(type=SenderType.BALCKHOLE))
+        if not has_sender_apprise:
+            self.senders.append(SenderApprise(type=SenderType.APPRISE))
 
 
 def generate_config_from_dict(
-    data: dict[str, Any], complete_config: bool = False
+    data: dict[str, Any], complete_config: bool = True
 ) -> Config:
     config = Config.from_dict(data)
     if complete_config:
@@ -143,7 +159,7 @@ def generate_config_from_dict(
 
 
 def generate_config_from_file(
-    filename: Path | str, complete_config: bool = False
+    filename: Path | str, complete_config: bool = True
 ) -> Config | None:
     try:
         with open(filename, "rb") as f:
@@ -169,7 +185,7 @@ _config: Config
 
 
 def reinit_config(
-    filename: Path | str | None = None, complete_config: bool = False
+    filename: Path | str | None = None, complete_config: bool = True
 ) -> Config:
     global _config_filename
     global _config

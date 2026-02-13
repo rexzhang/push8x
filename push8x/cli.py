@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 import typer
+from rich.pretty import pprint
 
 from .config import reinit_config
 from .constans import (
@@ -60,6 +61,15 @@ def serve(
 
 
 @app.command()
+def configchecker() -> Any:
+    """Config check tool."""
+    reinit_config(state.config_filename)
+    from .config import config
+
+    pprint(config)
+
+
+@app.command()
 def ruletester(
     f_name: str = typer.Option("Sender Man"),
     f_value: str = typer.Option("sender@example.com"),
@@ -70,7 +80,7 @@ def ruletester(
     content_format: MsgContentType = typer.Option(MsgContentType.PLAIN),
     receiver: ReceiverType = typer.Option(ReceiverType.SMTPD),
 ) -> Any:
-    """rule test tool."""
+    """Rule Matcher test tool."""
     reinit_config(state.config_filename)
     from .config import config
 

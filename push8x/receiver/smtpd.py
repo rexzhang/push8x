@@ -7,6 +7,7 @@ from aiosmtpd.smtp import SMTP, Envelope, Session
 
 from ..config import Config
 from ..constans import Msg, MsgContentType, MsgQueue, ReceiverType
+from ..worker import worker_guardian
 from .common import ReceiverAbc
 
 logger = getLogger(__name__)
@@ -39,6 +40,7 @@ class ReceiverSmtpd(ReceiverAbc):
         self.type = ReceiverType.SMTPD
         self.q = Queue()
 
+    @worker_guardian()
     async def worker_recevier(self):
         loop = asyncio.get_running_loop()
         server = await loop.create_server(
@@ -49,6 +51,7 @@ class ReceiverSmtpd(ReceiverAbc):
         async with server:
             await server.serve_forever()
 
+    @worker_guardian()
     async def worker_processer(self):
         while True:
             mail = await self.q.get()

@@ -4,8 +4,8 @@ from logging import getLogger
 from rich.pretty import pprint
 
 from .config import Config, Rule
-from .constans import Msg, MsgQueue
-from .sender.common import SenderQueueMapping
+from .constans import Msg, MsgQueue, SenderQueueMapping
+from .worker import worker_guardian
 
 logger = getLogger(__name__)
 
@@ -93,6 +93,7 @@ class RuleMatcher:
         self.q = q
         self.sender_q_mapping = sender_q_mapping
 
+    @worker_guardian()
     async def worker(self):
         # TODO: 3.13+ 使用 QueueShutDown
         while True:
@@ -104,6 +105,8 @@ class RuleMatcher:
             async for rule_id, rule, new_msg in RuleMatchAsyncProcessor(
                 rules=self.config.rules, msg=msg
             ):
+                matched = True
+
                 sender_q = self.sender_q_mapping.get(rule.sender_name)
                 if sender_q is None:
                     raise
@@ -133,6 +136,7 @@ async def rule_tester(config: Config, msg: Msg) -> None:
         rules=config.rules, msg=msg
     ):
         matched = True
+
         print("Matche Rule ---")
         print(f"#{rule_id}: ", end="")
         pprint(rule)

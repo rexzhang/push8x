@@ -1,8 +1,8 @@
-from typing import TypeAlias
+from logging import getLogger
 
 from ..constans import MsgQueue
 
-SenderQueueMapping: TypeAlias = dict[str, MsgQueue]
+logger = getLogger(__name__)
 
 
 class SenderAbc:

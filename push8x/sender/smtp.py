@@ -6,9 +6,10 @@ from .common import SenderAbc
 logger = getLogger(__name__)
 
 
-class SenderBlackhole(SenderAbc):
+class SenderSmtp(SenderAbc):
 
     @worker_guardian()
     async def worker(self):
         while True:
             await self.q.get()
+            raise

@@ -15,9 +15,7 @@ class ReceiverAbc:
         self.rule_matcher_q = rule_matcher_q
 
     async def worker_recevier(self):
-        """接收/鉴权"""
         raise NotImplementedError
 
     async def worker_processer(self):
-        """详细解析信息"""
         raise NotImplementedError

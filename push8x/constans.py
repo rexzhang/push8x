@@ -63,3 +63,4 @@ class Msg:
 
 
 MsgQueue: TypeAlias = Queue[Msg]
+SenderQueueMapping: TypeAlias = dict[str, MsgQueue]
