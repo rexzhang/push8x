@@ -2,5 +2,6 @@
 -r docker.txt
 
 -r mypy.txt
+aiosmtplib
 fabric
 icecream

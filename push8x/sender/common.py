@@ -1,14 +1,14 @@
 from typing import TypeAlias
 
-from ..task import TaskQueue
+from ..constans import MsgQueue
 
-SenderQueueMapping: TypeAlias = dict[str, TaskQueue]
+SenderQueueMapping: TypeAlias = dict[str, MsgQueue]
 
 
 class SenderAbc:
-    q: TaskQueue
+    q: MsgQueue
 
-    def __init__(self, sender_q: TaskQueue) -> None:
+    def __init__(self, sender_q: MsgQueue) -> None:
         self.q = sender_q
 
     async def worker(self):

@@ -3,30 +3,31 @@ from logging import getLogger
 import uvicorn
 
 from ..config import Config
-from ..constans import ReceiverType
-from ..task import MessageContentType, Task, TaskQueue
+from ..constans import Msg, MsgContentType, MsgQueue, ReceiverType
 from .common import ReceiverAbc
 
 logger = getLogger(__name__)
 
-_rule_matcher_q: TaskQueue
+_rule_matcher_q: MsgQueue
 
 
 async def simple_asgi_app(scope, receive, send):
     if scope["type"] != "http":
         return
 
-    task = task = Task(
-        f="aaaa",
-        t="*@example.com",
+    msg = Msg(
+        f_name="",
+        f_value="aaaa",
+        t_name="",
+        t_value="*@example.com",
         title="title",
         content="content",
-        content_format=MessageContentType.PLAIN,
+        content_format=MsgContentType.PLAIN,
         ext=dict(),
         receiver=ReceiverType.WEBHOOK,
     )
 
-    await _rule_matcher_q.put(task)
+    await _rule_matcher_q.put(msg)
 
     await send(
         {
@@ -45,7 +46,8 @@ async def simple_asgi_app(scope, receive, send):
 
 
 class ReceiverWebhook(ReceiverAbc):
-    def __init__(self, config: Config, rule_matcher_q: TaskQueue) -> None:
+
+    def __init__(self, config: Config, rule_matcher_q: MsgQueue) -> None:
         super().__init__(config, rule_matcher_q)
 
         global _rule_matcher_q
@@ -53,7 +55,7 @@ class ReceiverWebhook(ReceiverAbc):
 
         self.type = ReceiverType.WEBHOOK
 
-    async def worker(self):
+    async def worker_recevier(self):
         server = uvicorn.Server(
             uvicorn.Config(
                 app=simple_asgi_app,

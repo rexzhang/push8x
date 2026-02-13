@@ -98,12 +98,14 @@ class SenderApprise(SenderAbc, JSONPyWizard):
 class Rule:
     sender_name: str
 
-    match_f: str | None = None
-    match_t: str | None = None
+    receiver: ReceiverType | None = None  # None is mean ANY
+
+    match_f_value: str | None = None
+    match_t_value: str | None = None
     match_title: str | None = None
 
-    new_f: str | None = None
-    new_t: str | None = None
+    new_f_value: str | None = None
+    new_t_value: str | None = None
 
 
 @dataclass
@@ -124,6 +126,7 @@ class Config(JSONPyWizard):
     )
 
     rules: list[Rule] = field(default_factory=list)
+    fallback_rules: list[Rule] = field(default_factory=list)
 
     def _complete_config(self) -> None:
         pass

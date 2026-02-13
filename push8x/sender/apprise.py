@@ -2,23 +2,27 @@ from logging import getLogger
 
 import apprise
 
-from ..task import Task, TaskQueue
+from ..constans import Msg, MsgContentType
 from .common import SenderAbc
 
 logger = getLogger(__name__)
 
 
 class SenderApprise(SenderAbc):
-    def __init__(self, sender_q: TaskQueue) -> None:
-        super().__init__(sender_q=sender_q)
-
-    def _do_task(self, task: Task):
+    def _do_task(self, msg: Msg):
         ap = apprise.Apprise()
-        ap.add(task.t)
-        ap.notify(body=task.content, title=task.title)
+        ap.add(msg.t_value)
+        match msg.content_format:
+            case MsgContentType.PLAIN:
+                body_format = apprise.NotifyFormat.TEXT
+            case MsgContentType.HTML:
+                body_format = apprise.NotifyFormat.HTML
+            case MsgContentType.MARKDOWN:
+                body_format = apprise.NotifyFormat.MARKDOWN
+        ap.notify(body=msg.content, title=msg.title, body_format=body_format)
 
     async def worker(self):
         while True:
-            task = await self.q.get()
-            logger.debug(f"got task: {task}")
-            self._do_task(task)
+            msg = await self.q.get()
+            logger.debug(f"got Msg: {msg}")
+            self._do_task(msg)
