@@ -17,27 +17,35 @@ async def send_async_email(message: email.message.EmailMessage | email.message.M
 
 
 async def send_mails():
-    message = MIMEText("测试内容1")
-    message["Subject"] = "测试主题"
-    message["From"] = "Example Hu <sender@example.com>"
-    message["To"] = "receiver@example.com"
-    await send_async_email(message)
+    # message = MIMEText("测试内容1")
+    # message["Subject"] = "测试主题"
+    # message["From"] = "Example Hu <sender@example.com>"
+    # message["To"] = "receiver@example.com"
+    # await send_async_email(message)
 
-    message = MIMEText("测试内容2")
-    message["Subject"] = "测试主题"
-    message["From"] = "<sender@example.com>"
-    message["To"] = "receiver@example.com"
-    await send_async_email(message)
+    # message = MIMEText("测试内容2")
+    # message["Subject"] = "测试主题"
+    # message["From"] = "<sender@example.com>"
+    # message["To"] = "receiver@example.com"
+    # await send_async_email(message)
 
-    message = MIMEText("测试内容3")
-    message["Subject"] = "测试主题"
-    message["From"] = "tester"
-    message["To"] = "receiver@example.com"
-    await send_async_email(message)
+    # message = MIMEText("测试内容3")
+    # message["Subject"] = "测试主题"
+    # message["From"] = "tester"
+    # message["To"] = "receiver@example.com"
+    # await send_async_email(message)
+
+    # message = MIMEMultipart()
+    # message["From"] = "sender@example.com"
+    # message["To"] = "receiver@example.com"
+    # message["Subject"] = "来自 Asyncio 的异步邮件"
+    # html_content = "<h1>你好！</h1><p>这是一封异步发送的 HTML 邮件。</p>"
+    # message.attach(MIMEText(html_content, "html", "utf-8"))
+    # await send_async_email(message)
 
     message = MIMEMultipart()
-    message["From"] = "sender@example.com"
-    message["To"] = "receiver@example.com"
+    message["From"] = "Push8X Tester <sender@example.com>"
+    message["To"] = "rex.zhang@gmail.com"
     message["Subject"] = "来自 Asyncio 的异步邮件"
     html_content = "<h1>你好！</h1><p>这是一封异步发送的 HTML 邮件。</p>"
     message.attach(MIMEText(html_content, "html", "utf-8"))

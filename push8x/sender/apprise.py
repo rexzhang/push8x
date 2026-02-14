@@ -2,7 +2,7 @@ from logging import getLogger
 
 import apprise
 
-from ..constans import Msg, MsgContentType
+from ..constans import Msg, MsgContentType, SenderType
 from ..worker import worker_guardian
 from .common import SenderAbc
 
@@ -10,6 +10,11 @@ logger = getLogger(__name__)
 
 
 class SenderApprise(SenderAbc):
+
+    @property
+    def type(self) -> SenderType:
+        return SenderType.APPRISE
+
     def _do_task(self, msg: Msg):
         ap = apprise.Apprise()
         ap.add(msg.t_value)

@@ -12,7 +12,7 @@ WIP:
     ☐ SenderWebhook
         ☐ 待设计
     ☐ SenderSmtp
-        支持邮件发送的回落 @high
+        ✔ 支持邮件发送的回落 @done(26-02-14 15:12)
     ☐ SenderApprise
         ✔ 基本功能 @done(26-02-11 22:42)
         ☐ 分析通用关键信息,晚上 task 中 message 信息定义

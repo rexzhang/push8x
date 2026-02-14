@@ -1,6 +1,7 @@
 import asyncio
 import functools
 import time
+from collections.abc import Coroutine
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -57,3 +58,31 @@ def worker_guardian(
         return wrapper
 
     return decorator
+
+
+async def worker_supervisor(workers: list[Coroutine]):
+    try:
+        async with asyncio.TaskGroup() as tg:
+            tasks = [tg.create_task(worker) for worker in workers]
+
+            done, pending = await asyncio.wait(
+                tasks, return_when=asyncio.FIRST_COMPLETED
+            )
+
+            first_task = done.pop()
+            try:
+                res = first_task.result()
+                print(f"📢 [观测点] 第一个任务正常结束: {res}")
+            except Exception as e:
+                print(f"🚨 [观测点] 第一个任务异常结束: {e}")
+
+            print("🛑 正在通知所有其他 Worker 退出...")
+            for p in pending:
+                p.cancel()
+
+    except* Exception as eg:
+        for e in eg.exceptions:
+            if not isinstance(e, asyncio.CancelledError):
+                print(f"⚠️ 捕获到子任务异常: {e}")
+
+    print("\n[系统状态] 所有任务已清理。")

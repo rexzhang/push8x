@@ -14,36 +14,9 @@ from .sender.apprise import SenderApprise
 from .sender.balckhole import SenderBlackhole
 from .sender.smtp import SenderSmtp
 from .sender.webhook import SenderWebhook
+from .worker import worker_supervisor
 
 logger = getLogger(__name__)
-
-
-async def supervisor(workers: list[Coroutine]):
-    try:
-        async with asyncio.TaskGroup() as tg:
-            tasks = [tg.create_task(worker) for worker in workers]
-
-            done, pending = await asyncio.wait(
-                tasks, return_when=asyncio.FIRST_COMPLETED
-            )
-
-            first_task = done.pop()
-            try:
-                res = first_task.result()
-                print(f"📢 [观测点] 第一个任务正常结束: {res}")
-            except Exception as e:
-                print(f"🚨 [观测点] 第一个任务异常结束: {e}")
-
-            print("🛑 正在通知所有其他 Worker 退出...")
-            for p in pending:
-                p.cancel()
-
-    except* Exception as eg:
-        for e in eg.exceptions:
-            if not isinstance(e, asyncio.CancelledError):
-                print(f"⚠️ 捕获到子任务异常: {e}")
-
-    print("\n[系统状态] 所有任务已清理。")
 
 
 async def server(config: Config):
@@ -52,25 +25,31 @@ async def server(config: Config):
     # init senders
     sender_q_mapping: SenderQueueMapping = dict()
     sender_list = list()
-    for sender in config.senders:
+    for sender_config in config.senders:
         sender_q = MsgQueue()
 
-        match sender.type:
+        match sender_config.type:
             case SenderType.BALCKHOLE:
-                sender_obj = SenderBlackhole(sender_q=sender_q)
+                sender_obj = SenderBlackhole(
+                    sender_config=sender_config, sender_q=sender_q
+                )
             case SenderType.WEBHOOK:
-                sender_obj = SenderWebhook(sender_q=sender_q)
+                sender_obj = SenderWebhook(
+                    sender_config=sender_config, sender_q=sender_q
+                )
             case SenderType.SMTP:
-                sender_obj = SenderSmtp(sender_q=sender_q)
+                sender_obj = SenderSmtp(sender_config=sender_config, sender_q=sender_q)
             case SenderType.APPRISE:
-                sender_obj = SenderApprise(sender_q=sender_q)
+                sender_obj = SenderApprise(
+                    sender_config=sender_config, sender_q=sender_q
+                )
 
             case _:
                 raise
 
         sender_list.append(sender_obj)
         workers.append(sender_obj.worker())
-        sender_q_mapping[sender.name] = sender_q
+        sender_q_mapping[sender_config.name] = sender_q
 
     # init rule matcher
     rule_matcher_q = MsgQueue()
@@ -87,11 +66,7 @@ async def server(config: Config):
     receiver_webhook = ReceiverWebhook(config=config, rule_matcher_q=rule_matcher_q)
     workers.append(receiver_webhook.worker_recevier())
 
-    print(
-        f"正在启动服务 (HTTP: {config.server_http.host}:{config.server_http.port}, SMTP: {config.server_smtp.host}:{config.server_smtp.port}..."
-    )
-
-    await supervisor(workers)
+    await worker_supervisor(workers)
 
 
 def main(config: Config):

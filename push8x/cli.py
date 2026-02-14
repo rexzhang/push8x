@@ -55,8 +55,8 @@ def serve(
     reinit_config(state.config_filename)
     from .config import config
 
-    config.server_http.host = webhook_host
-    config.server_smtp.host = smtpd_host
+    config.receiver.webhook.host = webhook_host
+    config.receiver.smtpd.host = smtpd_host
     serve_main(config)
 
 

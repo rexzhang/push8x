@@ -48,23 +48,28 @@ async def simple_asgi_app(scope, receive, send):
 
 class ReceiverWebhook(ReceiverAbc):
 
+    @property
+    def type(self) -> ReceiverType:
+        return ReceiverType.WEBHOOK
+
     def __init__(self, config: Config, rule_matcher_q: MsgQueue) -> None:
         super().__init__(config, rule_matcher_q)
 
         global _rule_matcher_q
         _rule_matcher_q = rule_matcher_q
 
-        self.type = ReceiverType.WEBHOOK
-
     @worker_guardian()
     async def worker_recevier(self):
         server = uvicorn.Server(
             uvicorn.Config(
                 app=simple_asgi_app,
-                host=self.config.server_http.host,
-                port=self.config.server_http.port,
+                host=self.config.receiver.webhook.host,
+                port=self.config.receiver.webhook.port,
                 log_level="warning",
                 access_log=False,
             )
+        )
+        logger.info(
+            f"Starting {self.type} server on {self.config.receiver.webhook.host}:{self.config.receiver.webhook.port}"
         )
         await server.serve()

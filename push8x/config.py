@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 import tomllib
-from dataclasses import dataclass, field
+from dataclasses import KW_ONLY, dataclass, field
 from logging import getLogger
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeAlias
 
 from dataclass_wizard import JSONPyWizard
 
 from .constans import ReceiverType, SenderType
 
 logger = getLogger(__name__)
+
+# common ---
 
 
 @dataclass
@@ -19,83 +21,118 @@ class Common:
     sentry_dsn: str = ""
 
 
-@dataclass
-class ServerSmtp:
-    host: str = "127.0.0.1"
-    port: int = 8025
+# provider ---
 
 
 @dataclass
-class ServerHttp:
-    host: str = "127.0.0.1"
-    port: int = 8000
-    base_path: str = "/webhhok"
-
-
-@dataclass
-class ReceiverSmtp(JSONPyWizard):
-    class _(JSONPyWizard.Meta):
-        tag = ReceiverType.SMTPD.value
-
+class ProviderAbc:
     enable: bool = True
-
-    @property
-    def name(self) -> str:
-        return ReceiverType.SMTPD.value
-
-
-@dataclass
-class ReceiverWebhook(JSONPyWizard):
-    class _(JSONPyWizard.Meta):
-        tag = ReceiverType.WEBHOOK.value
-
-    name: str  # => /webhook/<name>, maybe call it: path
-    token: str
-
-    enable: bool = True
-
-
-@dataclass
-class SenderAbc:
-    type: SenderType
     name: str = field(init=False)
 
     def __post_init__(self):
         if not hasattr(self, "name"):
-            self.name = self.type.value
+            self.name = self.type.value  # type: ignore
+
+
+# --- receiver
 
 
 @dataclass
-class SenderBlackhole(SenderAbc, JSONPyWizard):
+class ReceiverAbc(ProviderAbc):
+    host: str = "127.0.0.1"
+
+
+@dataclass
+class ReceiverWebhookEndpoint:
+    name: str  # 只能包含字母数字
+    token: str
+
+
+@dataclass
+class ReceiverWebhook(ReceiverAbc):
+
+    @property
+    def type(self) -> ReceiverType:
+        return ReceiverType.WEBHOOK
+
+    port: int = 8000
+    base_path: str = "/webhooks"
+
+    endpoints: list[ReceiverWebhookEndpoint] = field(default_factory=list)
+
+
+@dataclass
+class ReceiverSmtpdAccount:
+    username: str
+    password: str
+
+
+@dataclass
+class ReceiverSmtpd(ReceiverAbc):
+
+    @property
+    def type(self) -> ReceiverType:
+        return ReceiverType.SMTPD
+
+    port: int = 8025
+
+    accounts: list[ReceiverSmtpdAccount] = field(default_factory=list)
+
+
+@dataclass
+class ReceiverContainer:
+    webhook: ReceiverWebhook = field(default_factory=ReceiverWebhook)
+    smtpd: ReceiverSmtpd = field(default_factory=ReceiverSmtpd)
+
+
+# senders ---
+
+
+@dataclass
+class SenderBlackhole(ProviderAbc, JSONPyWizard):
     class _(JSONPyWizard.Meta):
         tag = SenderType.BALCKHOLE.value
 
-    enable: bool = True
+    type: SenderType = SenderType.BALCKHOLE
 
 
 @dataclass
-class SenderWebhook(SenderAbc, JSONPyWizard):
+class SenderWebhook(ProviderAbc, JSONPyWizard):
     class _(JSONPyWizard.Meta):
         tag = SenderType.WEBHOOK.value
 
-    enable: bool = True
+    type: SenderType = SenderType.WEBHOOK
 
 
 @dataclass
-class SenderSmtp(SenderAbc, JSONPyWizard):
+class SenderSmtp(ProviderAbc, JSONPyWizard):
     class _(JSONPyWizard.Meta):
         tag = SenderType.SMTP.value
 
-    enable: bool = True
+    type: SenderType = SenderType.SMTP
+
+    _: KW_ONLY
+    host: str
+    port: int
+    username: str | None = None
+    password: str | None = None
+    use_tls: bool = False
+    start_tls: bool | None = None
+
     default_email: str = "noreply@example.com"
 
 
 @dataclass
-class SenderApprise(SenderAbc, JSONPyWizard):
+class SenderApprise(ProviderAbc, JSONPyWizard):
     class _(JSONPyWizard.Meta):
         tag = SenderType.APPRISE.value
 
-    enable: bool = True
+    type: SenderType = SenderType.APPRISE
+
+
+SenderConfig: TypeAlias = SenderBlackhole | SenderWebhook | SenderSmtp | SenderApprise
+
+# rules/fallback_rules ---
 
 
 @dataclass
@@ -112,6 +149,9 @@ class Rule:
     new_t_value: str | None = None
 
 
+# config ---
+
+
 @dataclass
 class Config(JSONPyWizard):
     class Meta(JSONPyWizard.Meta):
@@ -120,10 +160,7 @@ class Config(JSONPyWizard):
 
     common: Common = field(default_factory=Common)
 
-    server_smtp: ServerSmtp = field(default_factory=ServerSmtp)
-    server_http: ServerHttp = field(default_factory=ServerHttp)
-
-    receiver: list[ReceiverSmtp | ReceiverWebhook] = field(default_factory=list)
+    receiver: ReceiverContainer = field(default_factory=ReceiverContainer)
 
     senders: list[SenderBlackhole | SenderWebhook | SenderSmtp | SenderApprise] = field(
         default_factory=list
@@ -133,15 +170,23 @@ class Config(JSONPyWizard):
     fallback_rules: list[Rule] = field(default_factory=list)
 
     def _complete_config(self) -> None:
-        # add default senders
+        # check senders ---
         has_sender_blackhole = False
         has_sender_apprise = False
+
+        sender_names = set()
         for sender in self.senders:
+            # --- check sender name
+            if sender.name in sender_names:
+                raise ValueError(f"sender name {sender.name} is duplicated")
+            sender_names.add(sender.name)
+
             if isinstance(sender, SenderBlackhole):
                 has_sender_blackhole = True
             elif isinstance(sender, SenderApprise):
                 has_sender_apprise = True
 
+        # --- add default senders
         if not has_sender_blackhole:
             self.senders.append(SenderBlackhole(type=SenderType.BALCKHOLE))
         if not has_sender_apprise:

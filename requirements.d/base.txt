@@ -6,6 +6,7 @@ uvicorn
 aiosmtpd
 mail-parser
 httpx
+aiosmtplib
 apprise
 
 # config

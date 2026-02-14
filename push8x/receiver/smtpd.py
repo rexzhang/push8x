@@ -34,10 +34,13 @@ class SmtpdHandler:
 class ReceiverSmtpd(ReceiverAbc):
     q: Queue[mailparser.MailParser]
 
+    @property
+    def type(self) -> ReceiverType:
+        return ReceiverType.SMTPD
+
     def __init__(self, config: Config, rule_matcher_q: MsgQueue) -> None:
         super().__init__(config, rule_matcher_q)
 
-        self.type = ReceiverType.SMTPD
         self.q = Queue()
 
     @worker_guardian()
@@ -45,10 +48,13 @@ class ReceiverSmtpd(ReceiverAbc):
         loop = asyncio.get_running_loop()
         server = await loop.create_server(
             lambda: SMTP(SmtpdHandler(self.q), enable_SMTPUTF8=True),
-            host=self.config.server_smtp.host,
-            port=self.config.server_smtp.port,
+            host=self.config.receiver.smtpd.host,
+            port=self.config.receiver.smtpd.port,
         )
         async with server:
+            logger.info(
+                f"Starting {self.type} server on {self.config.receiver.smtpd.host}:{self.config.receiver.smtpd.port}"
+            )
             await server.serve_forever()
 
     @worker_guardian()

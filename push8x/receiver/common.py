@@ -7,8 +7,17 @@ logger = getLogger(__name__)
 
 
 class ReceiverAbc:
-    type: ReceiverType  # TODO: name?
+    config: Config
     rule_matcher_q: MsgQueue
+
+    @property
+    def type(self) -> ReceiverType:
+        raise NotImplementedError
+
+    @property
+    def name(self) -> str:
+        """Receiver, name same as type"""
+        return self.type.value
 
     def __init__(self, config: Config, rule_matcher_q: MsgQueue) -> None:
         self.config = config
