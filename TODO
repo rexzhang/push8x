@@ -2,12 +2,15 @@ WIP:
     v0.1.0
     ☐ ReceiverWebhook
         ☐ 支持接受消息
-        ☐ 支持基于 token 的认证方式
+        ✔ 支持基于 token 的认证方式 @done(26-02-15 20:40)
+        ☐ 完整的 payload 设计
     ☐ ReceiverSmtpd
         ✔ 正确的解析 text 格式邮件 @done(26-02-13 15:06)
         ✔ 正确的解析 html 格式邮件 @done(26-02-13 15:07)
         ☐ 正确的解析 带附件的邮件 @low
         ☐ 支持简单认证
+            ☐ nginx api 认证
+            ☐ smtpd 接口上的认证
         ☐ 支持安全链接
     ☐ SenderWebhook
         ☐ 待设计
@@ -19,7 +22,7 @@ WIP:
         ☐ 支持代理?
     ☐ RuleMatcher
         ✔ 基于通配符的匹配机制 @done(26-02-11 22:44)
-        ☐ 支持基于模版的 task 参数替换 @high jinja2
+        ✔ 支持基于模版的 Msg 参数替换 @done(26-02-15 11:16)
         ✔ 实现一个 CLI 接口,支持通过命令行检查匹配结果 @done(26-02-13 18:43)
     ☐ 开发/演进支持
         ☐ dump smtpd 收到的信息,用于分析

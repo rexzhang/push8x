@@ -8,10 +8,10 @@ from rich.pretty import pprint
 from .config import reinit_config
 from .constans import (
     DEFAULT_CONFIG_FILENAME,
+    DEFAULT_HTTP_HOST,
+    DEFAULT_HTTP_PORT,
     DEFAULT_SMTPD_HOST,
     DEFAULT_SMTPD_PORT,
-    DEFAULT_WEBHOOK_HOST,
-    DEFAULT_WEBHOOK_PORT,
     Msg,
     MsgContentType,
     ReceiverType,
@@ -47,21 +47,23 @@ def main(
 
 @app.command()
 def serve(
-    webhook_host: str = typer.Option(DEFAULT_WEBHOOK_HOST, help="webhook bind host"),
-    webhook_port: int = typer.Option(DEFAULT_WEBHOOK_PORT, help="webhook bind port"),
+    http_host: str = typer.Option(DEFAULT_HTTP_HOST, help="http server bind host"),
+    http_port: int = typer.Option(DEFAULT_HTTP_PORT, help="http server bind port"),
     smtpd_host: str = typer.Option(DEFAULT_SMTPD_HOST, help="smtpd bind host"),
     smtpd_port: int = typer.Option(DEFAULT_SMTPD_PORT, help="smtpd bind port"),
 ) -> Any:
     reinit_config(state.config_filename)
     from .config import config
 
-    config.receiver.webhook.host = webhook_host
+    config.http_server.host = http_host
+    config.http_server.port = http_port
     config.receiver.smtpd.host = smtpd_host
+    config.receiver.smtpd.port = smtpd_port
     serve_main(config)
 
 
 @app.command()
-def configchecker() -> Any:
+def configcheck() -> Any:
     """Config check tool."""
     reinit_config(state.config_filename)
     from .config import config
@@ -70,7 +72,7 @@ def configchecker() -> Any:
 
 
 @app.command()
-def ruletester(
+def ruletest(
     from_name: str = typer.Option("Sender Man"),
     from_value: str = typer.Option("sender@example.com"),
     to_name: str = typer.Option("Receiver Man"),

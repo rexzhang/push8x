@@ -5,12 +5,17 @@ from logging import getLogger
 import mailparser
 from aiosmtpd.smtp import SMTP, Envelope, Session
 
+from ..auth import AuthAbc
 from ..config import Config
 from ..constans import Msg, MsgContentType, MsgQueue, ReceiverType
 from ..worker import worker_guardian
 from .common import ReceiverAbc
 
 logger = getLogger(__name__)
+
+
+class ReceiverSmtpdAuth(AuthAbc):
+    pass
 
 
 class SmtpdHandler:

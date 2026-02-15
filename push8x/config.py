@@ -8,7 +8,14 @@ from typing import Any, TypeAlias
 
 from dataclass_wizard import JSONPyWizard
 
-from .constans import ReceiverType, SenderType
+from .constans import (
+    DEFAULT_HTTP_HOST,
+    DEFAULT_HTTP_PORT,
+    DEFAULT_SMTPD_HOST,
+    DEFAULT_SMTPD_PORT,
+    ReceiverType,
+    SenderType,
+)
 
 logger = getLogger(__name__)
 
@@ -17,8 +24,15 @@ logger = getLogger(__name__)
 
 @dataclass
 class Common:
+    # dev
     debug: bool = False
     sentry_dsn: str = ""
+
+
+@dataclass
+class HttpServer:
+    host: str = DEFAULT_HTTP_HOST
+    port: int = DEFAULT_HTTP_PORT
 
 
 # provider ---
@@ -39,7 +53,7 @@ class ProviderAbc:
 
 @dataclass
 class ReceiverAbc(ProviderAbc):
-    host: str = "127.0.0.1"
+    pass
 
 
 @dataclass
@@ -55,7 +69,6 @@ class ReceiverWebhook(ReceiverAbc):
     def type(self) -> ReceiverType:
         return ReceiverType.WEBHOOK
 
-    port: int = 8000
     base_path: str = "/webhooks"
 
     endpoints: list[ReceiverWebhookEndpoint] = field(default_factory=list)
@@ -74,7 +87,8 @@ class ReceiverSmtpd(ReceiverAbc):
     def type(self) -> ReceiverType:
         return ReceiverType.SMTPD
 
-    port: int = 8025
+    host: str = DEFAULT_SMTPD_HOST
+    port: int = DEFAULT_SMTPD_PORT
 
     accounts: list[ReceiverSmtpdAccount] = field(default_factory=list)
 
@@ -168,6 +182,7 @@ class Config(JSONPyWizard):
         auto_assign_tags = False
 
     common: Common = field(default_factory=Common)
+    http_server: HttpServer = field(default_factory=HttpServer)
 
     receiver: ReceiverContainer = field(default_factory=ReceiverContainer)
 

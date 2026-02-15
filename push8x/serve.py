@@ -7,6 +7,7 @@ from logging import getLogger
 
 from .config import Config
 from .constans import MsgQueue, SenderQueueMapping, SenderType
+from .http_server import HttpServer
 from .receiver.smtpd import ReceiverSmtpd
 from .receiver.webhook import ReceiverWebhook
 from .rule import RuleMatcher
@@ -63,9 +64,17 @@ async def server(config: Config):
     workers.append(receiver_smtpd.worker_recevier())
     workers.append(receiver_smtpd.worker_processer())
 
-    receiver_webhook = ReceiverWebhook(config=config, rule_matcher_q=rule_matcher_q)
-    workers.append(receiver_webhook.worker_recevier())
+    receiver_webhook_q = MsgQueue()
+    receiver_webhook = ReceiverWebhook(
+        config=config, q=receiver_webhook_q, rule_matcher_q=rule_matcher_q
+    )
+    workers.append(receiver_webhook.worker_processer())
 
+    # init http server
+    http_server = HttpServer(config=config, webhook_q=receiver_webhook_q)
+    workers.append(http_server.worker())
+
+    # go start
     await worker_supervisor(workers)
 
 

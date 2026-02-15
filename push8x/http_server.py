@@ -1,0 +1,164 @@
+import asyncio
+from http import HTTPStatus  # HTTPMethod
+from logging import getLogger
+
+from httptools import HttpParserError, HttpRequestParser, parse_url
+
+from .config import Config
+from .constans import HttpServerResponse, Msg, MsgContentType, MsgQueue, ReceiverType
+from .receiver.smtpd import ReceiverSmtpdAuth
+from .receiver.webhook import ReceiverWebhookAuth
+from .worker import worker_guardian
+
+logger = getLogger(__name__)
+
+
+class HttpServerProtocol(asyncio.Protocol):
+    # request info
+    url: bytes
+    headers: dict[str, str]
+    body: bytearray
+
+    webhook_auth: ReceiverWebhookAuth
+    smtpd_auth: ReceiverSmtpdAuth
+
+    def __init__(
+        self,
+        webhook_auth: ReceiverWebhookAuth,
+        webhook_q: MsgQueue,
+        smtpd_auth: ReceiverSmtpdAuth,
+    ):
+        self.webhook_auth = webhook_auth
+        self.webhook_q = webhook_q
+        self.smtpd_auth = smtpd_auth
+
+        self.parser = HttpRequestParser(self)
+        # self.url = None
+        self.headers = {}
+
+    def connection_made(self, transport):
+        self.transport = transport
+
+    def data_received(self, data):
+        # 将字节流喂给解析器
+        try:
+            self.parser.feed_data(data)
+        except HttpParserError:
+            self.transport.close()
+
+    # --- httptools 回调函数 ---
+    def on_url(self, url: bytes):
+        self.url = url
+
+    def on_header(self, name: bytes, value: bytes):
+        self.headers[name.decode().lower()] = value.decode()
+
+    def on_body(self, body: bytes):
+        # 关键：body 可能会分多次到达，必须用 append/extend
+        self.body.extend(body)
+
+    def on_message_complete(self):
+        # Protocol 是同步的，这里需要创建异步任务
+        asyncio.create_task(self.handle_request())
+
+    async def handle_request(self):
+        paths: list[bytes] = parse_url(self.url).path.strip(b"/").split(b"/")
+
+        match paths:
+            case [b"api"]:
+                response = HttpServerResponse(HTTPStatus.OK)
+
+            case [b"api", b"smtpd", b"auth"]:
+                response = self._api_smtpd_account_check()
+
+            case [b"api", b"webhooks", *rest]:
+                response = await self._api_webhooks(
+                    method=self.parser.get_method(), paths=rest  # paths[2:]
+                )
+
+            case _:
+                response = HttpServerResponse(HTTPStatus.NOT_FOUND)
+
+        self.transport.write(response.bytes)
+        self.transport.close()
+
+    def _api_smtpd_account_check(self) -> HttpServerResponse:
+        """https://nginx.org/en/docs/mail/ngx_mail_auth_http_module.html"""
+        username = self.headers.get("auth-user")
+        password = self.headers.get("auth-pass")
+        # Client-IP
+        if username is None or password is None:
+            # TODO, response error
+            return HttpServerResponse(
+                HTTPStatus.OK,
+                [b"Auth-Status: Invalid login or password", b"Auth-Wait: 3"],
+            )
+
+        elif self.smtpd_auth.check_str(username=username, password=password):
+            return HttpServerResponse(
+                HTTPStatus.OK,
+                [b"Auth-Status: OK", b"Auth-Server: 127.0.0.1", b"Auth-Port: 10025"],
+            )
+
+        else:
+            return HttpServerResponse(
+                HTTPStatus.OK,
+                [b"Auth-Status: Invalid login or password", b"Auth-Wait: 3"],
+            )
+
+    async def _api_webhooks(
+        self, method: bytes, paths: list[bytes]
+    ) -> HttpServerResponse:
+        if method != b"POST":
+            return HttpServerResponse(
+                HTTPStatus.METHOD_NOT_ALLOWED,
+                [b"Allow: POST", b"Content-Type: application/json"],
+            )
+
+        if not self.webhook_auth.check(paths[0], paths[1]):
+            return HttpServerResponse(HTTPStatus.UNAUTHORIZED)
+
+        await self.webhook_q.put(
+            Msg(
+                from_name="",
+                from_value="aaaa",
+                to_name="",
+                to_value="*@example.com",
+                title="title",
+                content="content",
+                content_format=MsgContentType.PLAIN,
+                ext=dict(),
+                receiver=ReceiverType.WEBHOOK,
+            )
+        )
+        return HttpServerResponse(HTTPStatus.OK)
+
+
+class HttpServer:
+    config: Config
+    webhook_auth: ReceiverWebhookAuth
+    smtpd_auth: ReceiverSmtpdAuth
+
+    def __init__(self, config: Config, webhook_q: MsgQueue):
+        self.config = config
+
+        self.webhook_auth = ReceiverWebhookAuth(config.receiver.webhook.endpoints)
+        self.webhook_q = webhook_q
+
+        self.smtpd_account = ReceiverSmtpdAuth(config.receiver.smtpd.accounts)
+
+    @worker_guardian()
+    async def worker(self):
+        loop = asyncio.get_running_loop()
+        server = await loop.create_server(
+            lambda: HttpServerProtocol(
+                self.webhook_auth, self.webhook_q, self.smtpd_account
+            ),
+            self.config.http_server.host,
+            self.config.http_server.port,
+        )
+        logger.info(
+            f"HTTP Server started at http://{self.config.http_server.host}:{self.config.http_server.port}"
+        )
+        async with server:
+            await server.serve_forever()

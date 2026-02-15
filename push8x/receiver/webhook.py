@@ -1,49 +1,22 @@
 from logging import getLogger
 
-import uvicorn
-
+from ..auth import AuthAbc
 from ..config import Config
-from ..constans import Msg, MsgContentType, MsgQueue, ReceiverType
+from ..constans import MsgQueue, ReceiverType
 from ..worker import worker_guardian
 from .common import ReceiverAbc
 
 logger = getLogger(__name__)
 
-_rule_matcher_q: MsgQueue
 
+class ReceiverWebhookAuth(AuthAbc):
+    @property
+    def username_key(self) -> str:
+        return "name"
 
-async def simple_asgi_app(scope, receive, send):
-    if scope["type"] != "http":
-        return
-
-    msg = Msg(
-        from_name="",
-        from_value="aaaa",
-        to_name="",
-        to_value="*@example.com",
-        title="title",
-        content="content",
-        content_format=MsgContentType.PLAIN,
-        ext=dict(),
-        receiver=ReceiverType.WEBHOOK,
-    )
-
-    await _rule_matcher_q.put(msg)
-
-    await send(
-        {
-            "type": "http.response.start",
-            "status": 200,
-            "headers": [[b"content-type", b"text/plain"]],
-        }
-    )
-
-    await send(
-        {
-            "type": "http.response.body",
-            "body": b"Hello from Native ASGI! SMTP is also running.",
-        }
-    )
+    @property
+    def password_key(self) -> str:
+        return "token"
 
 
 class ReceiverWebhook(ReceiverAbc):
@@ -52,24 +25,13 @@ class ReceiverWebhook(ReceiverAbc):
     def type(self) -> ReceiverType:
         return ReceiverType.WEBHOOK
 
-    def __init__(self, config: Config, rule_matcher_q: MsgQueue) -> None:
+    def __init__(self, config: Config, q: MsgQueue, rule_matcher_q: MsgQueue) -> None:
         super().__init__(config, rule_matcher_q)
-
-        global _rule_matcher_q
-        _rule_matcher_q = rule_matcher_q
+        self.q = q
 
     @worker_guardian()
-    async def worker_recevier(self):
-        server = uvicorn.Server(
-            uvicorn.Config(
-                app=simple_asgi_app,
-                host=self.config.receiver.webhook.host,
-                port=self.config.receiver.webhook.port,
-                log_level="warning",
-                access_log=False,
-            )
-        )
-        logger.info(
-            f"Starting {self.type} server on {self.config.receiver.webhook.host}:{self.config.receiver.webhook.port}"
-        )
-        await server.serve()
+    async def worker_processer(self):
+        while True:
+            msg = await self.q.get()
+            # TODO: parse webhook payload
+            await self.rule_matcher_q.put(msg)

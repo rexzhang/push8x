@@ -1,6 +1,6 @@
 # asyncio
 uvloop
-uvicorn
+httptools
 
 # notification process
 aiosmtpd
