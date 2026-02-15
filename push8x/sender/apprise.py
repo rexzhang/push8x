@@ -17,7 +17,7 @@ class SenderApprise(SenderAbc):
 
     def _do_task(self, msg: Msg):
         ap = apprise.Apprise()
-        ap.add(msg.t_value)
+        ap.add(msg.to_value)
         match msg.content_format:
             case MsgContentType.PLAIN:
                 body_format = apprise.NotifyFormat.TEXT

@@ -134,19 +134,28 @@ SenderConfig: TypeAlias = SenderBlackhole | SenderWebhook | SenderSmtp | SenderA
 
 # rules/fallback_rules ---
 
+RULE_NEW_KEYS = ("from_name", "from_value", "to_name", "to_value", "title", "content")
+
 
 @dataclass
 class Rule:
     sender_name: str
 
-    receiver: ReceiverType | None = None  # None is mean ANY
+    # for match, None is mean ANY
+    receiver: ReceiverType | None = None
 
-    match_f_value: str | None = None
-    match_t_value: str | None = None
+    match_from_value: str | None = None
+    match_to_value: str | None = None
     match_title: str | None = None
 
-    new_f_value: str | None = None
-    new_t_value: str | None = None
+    # for output new Msg, replace/template
+    new_from_name: str | None = None
+    new_from_value: str | None = None
+    new_to_name: str | None = None
+    new_to_value: str | None = None
+
+    new_title: str | None = None
+    new_content: str | None = None
 
 
 # config ---

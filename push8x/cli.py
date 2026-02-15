@@ -71,10 +71,10 @@ def configchecker() -> Any:
 
 @app.command()
 def ruletester(
-    f_name: str = typer.Option("Sender Man"),
-    f_value: str = typer.Option("sender@example.com"),
-    t_name: str = typer.Option("Receiver Man"),
-    t_value: str = typer.Option("receiver@example.com"),
+    from_name: str = typer.Option("Sender Man"),
+    from_value: str = typer.Option("sender@example.com"),
+    to_name: str = typer.Option("Receiver Man"),
+    to_value: str = typer.Option("receiver@example.com"),
     title: str = typer.Option("Push8X test mail"),
     content: str = typer.Option("This is a test mail from Push8X"),
     content_format: MsgContentType = typer.Option(MsgContentType.PLAIN),
@@ -85,10 +85,10 @@ def ruletester(
     from .config import config
 
     msg = Msg(
-        f_name=f_name,
-        f_value=f_value,
-        t_name=t_name,
-        t_value=t_value,
+        from_name=from_name,
+        from_value=from_value,
+        to_name=to_name,
+        to_value=to_value,
         title=title,
         content=content,
         content_format=content_format,

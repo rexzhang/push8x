@@ -68,7 +68,7 @@ class EnvValue:
     DEPLOY_WORK_PATH = f"/root/apps/{APP_NAME}"
 
     # Docker Register
-    CR_HOST_NAME = "cr.h.rexzhang.com"
+    CR_HOSto_name = "cr.h.rexzhang.com"
     CR_NAME_SPACE = "rex"
 
     # Docker Image
@@ -76,7 +76,7 @@ class EnvValue:
 
     @property
     def DOCKER_IMAGE_FULL_NAME(self) -> str:
-        name = f"{self.CR_HOST_NAME}/{self.CR_NAME_SPACE}/{self.APP_NAME}"
+        name = f"{self.CR_HOSto_name}/{self.CR_NAME_SPACE}/{self.APP_NAME}"
         if self.DEPLOY_STAGE != "prd":
             name += f":{self.DEPLOY_STAGE}"
 

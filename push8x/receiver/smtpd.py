@@ -64,13 +64,13 @@ class ReceiverSmtpd(ReceiverAbc):
 
             if not isinstance(mail.from_, list):
                 raise Exception(mail.from_)
-            f_name = mail.from_[0][0]
-            f_value = mail.from_[0][1]
+            from_name = mail.from_[0][0]
+            from_value = mail.from_[0][1]
 
             if not isinstance(mail.to, list):
                 raise Exception(mail.to)
-            t_name = mail.to[0][0]
-            t_value = mail.to[0][1]
+            to_name = mail.to[0][0]
+            to_value = mail.to[0][1]
 
             if not isinstance(mail.subject, str):
                 raise Exception(mail.subject)
@@ -83,12 +83,12 @@ class ReceiverSmtpd(ReceiverAbc):
                 content = "\n".join(mail.text_plain)
                 content_format = MsgContentType.PLAIN
 
-            logger.debug(f"Receiver smtpd: {f_value} => {t_value}")
+            logger.debug(f"Receiver smtpd: {from_value} => {to_value}")
             msg = Msg(
-                f_name=f_name,
-                f_value=f_value,
-                t_name=t_name,
-                t_value=t_value,
+                from_name=from_name,
+                from_value=from_value,
+                to_name=to_name,
+                to_value=to_value,
                 title=title,
                 content=content,
                 content_format=content_format,

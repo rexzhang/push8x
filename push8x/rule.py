@@ -3,14 +3,16 @@ from logging import getLogger
 
 from rich.pretty import pprint
 
-from .config import Config, Rule
+from .config import RULE_NEW_KEYS, Config, Rule
 from .constans import Msg, MsgQueue, SenderQueueMapping
+from .template import MsgTemplate
 from .worker import worker_guardian
 
 logger = getLogger(__name__)
 
 
 class RuleMatchAsyncProcessor:
+    msg_template = MsgTemplate()
 
     def __init__(self, rules: list[Rule], msg: Msg) -> None:
         self.rules = iter(rules)
@@ -45,14 +47,14 @@ class RuleMatchAsyncProcessor:
 
         return False
 
-    def _msg_match_rule(self, rule) -> bool:
-        if rule.match_f_value is not None and not fnmatch.fnmatch(
-            self.msg.f_value, rule.match_f_value
+    def _msg_match_rule(self, rule: Rule) -> bool:
+        if rule.match_from_value is not None and not fnmatch.fnmatch(
+            self.msg.from_value, rule.match_from_value
         ):
             return False
 
-        if rule.match_t_value is not None and not fnmatch.fnmatch(
-            self.msg.t_value, rule.match_t_value
+        if rule.match_to_value is not None and not fnmatch.fnmatch(
+            self.msg.to_value, rule.match_to_value
         ):
             return False
 
@@ -63,16 +65,15 @@ class RuleMatchAsyncProcessor:
 
         return True
 
-    def _convert_msg_context(self, rule) -> Msg:
-        if rule.new_f_value is not None:
-            self.msg.f_value = rule.new_f_value
+    def _convert_msg_context(self, rule: Rule) -> Msg:
+        new_msg = self.msg  # TODO: deepcopy?
 
-        if rule.new_t_value is not None:
-            self.msg.t_value = rule.new_t_value
+        for k in RULE_NEW_KEYS:
+            new_x = getattr(rule, f"new_{k}")
+            if new_x is not None:
+                setattr(new_msg, k, self.msg_template.render(new_x, {"msg": self.msg}))
 
-        # TODO:!!!
-        # task.rule_id = 1
-        return self.msg
+        return new_msg
 
 
 class FallbackRuleMatchAsyncProcessor(RuleMatchAsyncProcessor):
@@ -138,7 +139,7 @@ async def rule_tester(config: Config, msg: Msg) -> None:
         matched = True
 
         print("Matche Rule ---")
-        print(f"#{rule_id}: ", end="")
+        print(f"RuleID:#{rule_id}, ", end="")
         pprint(rule)
         print("Ouput Msg: ", end="")
         pprint(new_msg)
@@ -150,7 +151,7 @@ async def rule_tester(config: Config, msg: Msg) -> None:
         rules=config.fallback_rules, msg=msg
     ):
         print("Matche Fallback Rule ---")
-        print(f"#{rule_id}: ", end="")
+        print(f"FallbackRuleID:#{rule_id}, ", end="")
         pprint(rule)
         print("Ouput Msg: ", end="")
         pprint(new_msg)

@@ -12,19 +12,19 @@ logger = getLogger(__name__)
 
 
 def get_email_from(msg: Msg) -> str:
-    if msg.f_name and msg.f_value:
-        return f"{msg.f_name} <{msg.f_value}>"
-    elif msg.f_value:
-        return msg.f_value
+    if msg.from_name and msg.from_value:
+        return f"{msg.from_name} <{msg.from_value}>"
+    elif msg.from_value:
+        return msg.from_value
     else:
         return ""
 
 
 def get_email_to(msg: Msg) -> str:
-    if msg.t_name and msg.t_value:
-        return f"{msg.t_name} <{msg.t_value}>"
-    elif msg.t_value:
-        return msg.t_value
+    if msg.to_name and msg.to_value:
+        return f"{msg.to_name} <{msg.to_value}>"
+    elif msg.to_value:
+        return msg.to_value
     else:
         return ""
 

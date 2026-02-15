@@ -46,10 +46,10 @@ class MsgContentType(Enum):
 @dataclass(slots=True)
 class Msg:
     # notification/message info
-    f_name: str
-    f_value: str
-    t_name: str
-    t_value: str
+    from_name: str
+    from_value: str
+    to_name: str
+    to_value: str
 
     title: str
     content: str

@@ -17,10 +17,10 @@ async def simple_asgi_app(scope, receive, send):
         return
 
     msg = Msg(
-        f_name="",
-        f_value="aaaa",
-        t_name="",
-        t_value="*@example.com",
+        from_name="",
+        from_value="aaaa",
+        to_name="",
+        to_value="*@example.com",
         title="title",
         content="content",
         content_format=MsgContentType.PLAIN,
