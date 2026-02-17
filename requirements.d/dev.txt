@@ -5,3 +5,4 @@
 aiosmtplib
 fabric
 icecream
+python-dotenv

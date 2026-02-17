@@ -109,7 +109,7 @@ def docker_build(c):
 
 @task
 def build(c):
-    docker_pull_base_image(c)
+    # docker_pull_base_image(c)
     docker_build(c)
 
 

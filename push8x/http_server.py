@@ -19,9 +19,6 @@ class HttpServerProtocol(asyncio.Protocol):
     headers: dict[str, str]
     body: bytearray
 
-    webhook_auth: ReceiverWebhookAuth
-    smtpd_auth: ReceiverSmtpdAuth
-
     def __init__(
         self,
         webhook_auth: ReceiverWebhookAuth,
@@ -79,32 +76,11 @@ class HttpServerProtocol(asyncio.Protocol):
             case _:
                 response = HttpServerResponse(HTTPStatus.NOT_FOUND)
 
-        self.transport.write(response.bytes)
+        self.transport.write(response.bytes)  # type: ignore
         self.transport.close()
 
     def _api_smtpd_account_check(self) -> HttpServerResponse:
-        """https://nginx.org/en/docs/mail/ngx_mail_auth_http_module.html"""
-        username = self.headers.get("auth-user")
-        password = self.headers.get("auth-pass")
-        # Client-IP
-        if username is None or password is None:
-            # TODO, response error
-            return HttpServerResponse(
-                HTTPStatus.OK,
-                [b"Auth-Status: Invalid login or password", b"Auth-Wait: 3"],
-            )
-
-        elif self.smtpd_auth.check_str(username=username, password=password):
-            return HttpServerResponse(
-                HTTPStatus.OK,
-                [b"Auth-Status: OK", b"Auth-Server: 127.0.0.1", b"Auth-Port: 10025"],
-            )
-
-        else:
-            return HttpServerResponse(
-                HTTPStatus.OK,
-                [b"Auth-Status: Invalid login or password", b"Auth-Wait: 3"],
-            )
+        return self.smtpd_auth.check_headers(headers=self.headers)
 
     async def _api_webhooks(
         self, method: bytes, paths: list[bytes]
@@ -145,7 +121,12 @@ class HttpServer:
         self.webhook_auth = ReceiverWebhookAuth(config.receiver.webhook.endpoints)
         self.webhook_q = webhook_q
 
-        self.smtpd_account = ReceiverSmtpdAuth(config.receiver.smtpd.accounts)
+        self.smtpd_account = ReceiverSmtpdAuth(
+            config=self.config,
+            accounts=config.receiver.smtpd.accounts,
+            smtpd_host=config.receiver.smtpd.host,
+            smtpd_port=config.receiver.smtpd.port,
+        )
 
     @worker_guardian()
     async def worker(self):
@@ -154,11 +135,11 @@ class HttpServer:
             lambda: HttpServerProtocol(
                 self.webhook_auth, self.webhook_q, self.smtpd_account
             ),
-            self.config.http_server.host,
-            self.config.http_server.port,
+            self.config.http_server.bind.host,
+            self.config.http_server.bind.port,
         )
         logger.info(
-            f"HTTP Server started at http://{self.config.http_server.host}:{self.config.http_server.port}"
+            f"HTTP Server started at http://{self.config.http_server.bind.host}:{self.config.http_server.bind.port}"
         )
         async with server:
             await server.serve_forever()

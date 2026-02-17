@@ -6,10 +6,10 @@ ARG IMAGE_VERSION
 ENV TZ="Asia/Shanghai"
 ENV UID=1000
 ENV GID=1000
-ENV WEBHOOK_HOST="0.0.0.0"
-ENV WEBHOOK_PORT="8000"
-ENV SMTPD_HOST="0.0.0.0"
-ENV SMTPD_PORT="8025"
+ENV HTTP_BIND_HOST="0.0.0.0"
+ENV HTTP_BIND_PORT="8000"
+ENV SMTPD_BIND_HOST="0.0.0.0"
+ENV SMTPD_BIND_PORT="8025"
 ENV CONFIG_FILENAME="/etc/push8x.toml"
 
 RUN if [ "$BUILD_ENV" = "rex" ]; then echo "Change depends" \
@@ -19,7 +19,6 @@ RUN if [ "$BUILD_ENV" = "rex" ]; then echo "Change depends" \
     ; fi
 
 COPY requirements.d /app/requirements.d
-COPY entrypoint.sh /app/entrypoint.sh
 
 RUN \
     # install python build depends ---
@@ -36,10 +35,10 @@ RUN \
     # support timezone ---
     && apk add --no-cache tzdata \
     # prepare ---
-    && chmod +x /app/entrypoint.sh \
     && mkdir /data
 
 COPY push8x /app/push8x
+COPY entrypoint.sh /app/entrypoint.sh
 
 WORKDIR /app
 VOLUME /data

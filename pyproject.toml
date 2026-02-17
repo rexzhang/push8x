@@ -9,12 +9,12 @@
 
 [project]
 name = "push8x"
-description = "An push notification route server implementation, support from:smtp/webhook to:smtp/webhook/apprise."
+description = "An push notificAn push notification exchange server implementation for selfhosted; support from:webhook/smtpd to:webhook/smtp/apprise, custom rules."
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = "==3.12"
 license-files = ["LICENSE"]
 authors = [{ name = "Rex Zhang" }, { email = "rex.zhang@gmail.com" }]
-keywords = ["push-notification", "notification", "smtp", "email", "webhook", "apprise", "asyncio"]
+keywords = ["push-notification", "notification", "smtp", "email", "webhook", "apprise", "asyncio", "selfhosted"]
 
 dynamic = ["version", "dependencies"]
 

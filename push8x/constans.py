@@ -7,10 +7,12 @@ from http import HTTPStatus
 from typing import Any, TypeAlias
 
 DEFAULT_CONFIG_FILENAME = "/etc/push8x.toml"
-DEFAULT_HTTP_HOST = "localhost"
-DEFAULT_HTTP_PORT = 8000
-DEFAULT_SMTPD_HOST = "localhost"
-DEFAULT_SMTPD_PORT = 8025
+DEFAULT_HTTP_BIND_HOST = "localhost"
+DEFAULT_HTTP_BIND_PORT = 8000
+DEFAULT_SMTPD_BIND_HOST = "localhost"
+DEFAULT_SMTPD_BIND_PORT = 8025
+
+HttpHeaders: TypeAlias = dict[str, str]  # key 小写化了的
 
 
 @dataclass

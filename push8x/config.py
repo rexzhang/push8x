@@ -9,15 +9,16 @@ from typing import Any, TypeAlias
 from dataclass_wizard import JSONPyWizard
 
 from .constans import (
-    DEFAULT_HTTP_HOST,
-    DEFAULT_HTTP_PORT,
-    DEFAULT_SMTPD_HOST,
-    DEFAULT_SMTPD_PORT,
+    DEFAULT_HTTP_BIND_HOST,
+    DEFAULT_HTTP_BIND_PORT,
+    DEFAULT_SMTPD_BIND_HOST,
+    DEFAULT_SMTPD_BIND_PORT,
     ReceiverType,
     SenderType,
 )
 
 logger = getLogger(__name__)
+
 
 # common ---
 
@@ -30,9 +31,14 @@ class Common:
 
 
 @dataclass
+class Bind:
+    host: str = DEFAULT_HTTP_BIND_HOST
+    port: int = DEFAULT_HTTP_BIND_PORT
+
+
+@dataclass
 class HttpServer:
-    host: str = DEFAULT_HTTP_HOST
-    port: int = DEFAULT_HTTP_PORT
+    bind: Bind = field(default_factory=Bind)
 
 
 # provider ---
@@ -69,8 +75,6 @@ class ReceiverWebhook(ReceiverAbc):
     def type(self) -> ReceiverType:
         return ReceiverType.WEBHOOK
 
-    base_path: str = "/webhooks"
-
     endpoints: list[ReceiverWebhookEndpoint] = field(default_factory=list)
 
 
@@ -87,10 +91,20 @@ class ReceiverSmtpd(ReceiverAbc):
     def type(self) -> ReceiverType:
         return ReceiverType.SMTPD
 
-    host: str = DEFAULT_SMTPD_HOST
-    port: int = DEFAULT_SMTPD_PORT
+    bind: Bind = field(
+        default_factory=lambda: Bind(DEFAULT_SMTPD_BIND_HOST, DEFAULT_SMTPD_BIND_PORT)
+    )
 
     accounts: list[ReceiverSmtpdAccount] = field(default_factory=list)
+
+    sender_ip_whitelist: set[str] = field(default_factory=set)
+    sender_username_equal_from_value: bool = True
+    from_value_regex: str | None = None
+    to_value_regex: str | None = None
+
+    # announcement TODO: rename => report?
+    host: str = DEFAULT_SMTPD_BIND_HOST
+    port: int = DEFAULT_SMTPD_BIND_PORT
 
 
 @dataclass

@@ -7,11 +7,12 @@ WIP:
     ☐ ReceiverSmtpd
         ✔ 正确的解析 text 格式邮件 @done(26-02-13 15:06)
         ✔ 正确的解析 html 格式邮件 @done(26-02-13 15:07)
+        ☐ 基于 nginx 的安全防护
+            ✔ 通过 nginx email api 认证 @done(26-02-15 20:47)
+            ✔ nginx ssl 部署支持 @done(26-02-17 16:38)
+            ☐ nginx startls  部署支持
         ☐ 正确的解析 带附件的邮件 @low
-        ☐ 支持简单认证
-            ☐ nginx api 认证
-            ☐ smtpd 接口上的认证
-        ☐ 支持安全链接
+        ☐ 直接在 smtpd 接口上支持认证 @low
     ☐ SenderWebhook
         ☐ 待设计
     ☐ SenderSmtp
