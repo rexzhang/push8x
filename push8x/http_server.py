@@ -91,7 +91,8 @@ class HttpServerProtocol(asyncio.Protocol):
                 [b"Allow: POST", b"Content-Type: application/json"],
             )
 
-        if not self.webhook_auth.check(paths[0], paths[1]):
+        auth_checked, auth_ext = self.webhook_auth.check(paths[0], paths[1])
+        if not auth_checked:
             return HttpServerResponse(HTTPStatus.UNAUTHORIZED)
 
         await self.webhook_q.put(

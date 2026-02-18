@@ -80,8 +80,11 @@ class ReceiverWebhook(ReceiverAbc):
 
 @dataclass
 class ReceiverSmtpdAccount:
-    username: str
+    username: str  # can be a email address or just a string
     password: str
+    from_value: str | None = (
+        None  # if is not None, will check email's from. TODO: support regex
+    )
 
 
 @dataclass
@@ -98,7 +101,6 @@ class ReceiverSmtpd(ReceiverAbc):
     accounts: list[ReceiverSmtpdAccount] = field(default_factory=list)
 
     sender_ip_whitelist: set[str] = field(default_factory=set)
-    sender_username_equal_from_value: bool = True
     from_value_regex: str | None = None
     to_value_regex: str | None = None
 
@@ -169,6 +171,10 @@ RULE_NEW_KEYS = ("from_name", "from_value", "to_name", "to_value", "title", "con
 class Rule:
     sender_name: str
 
+    # match logic ---
+    skip_if_already_matched_other: bool = False
+    skip_other_matched: bool = False
+
     # for match, None is mean ANY
     receiver: ReceiverType | None = None
 
@@ -176,6 +182,7 @@ class Rule:
     match_to_value: str | None = None
     match_title: str | None = None
 
+    # convert logic ---
     # for output new Msg, replace/template
     new_from_name: str | None = None
     new_from_value: str | None = None

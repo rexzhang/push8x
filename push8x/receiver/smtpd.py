@@ -1,4 +1,5 @@
 import asyncio
+import json
 import re
 from asyncio import Queue
 from http import HTTPStatus
@@ -42,13 +43,16 @@ class SMTP(SMTPAbc):
 
     async def smtp_XCLIENT(self, arg):
         # "ADDR=1.2.3.4 LOGIN=user@me.com"
-        ext_xclient = dict(item.split("=", 1) for item in arg.split() if "=" in item)
+        ext_xclient: ExtXclient = dict(
+            item.split("=", 1) for item in arg.split() if "=" in item
+        )  # type: ignore
 
         setattr(self.session, "ext_xclient", ext_xclient)
         await self.push("250 OK")
 
 
 class ReceiverSmtpdAuth(AuthAbc):
+    """for http api"""
 
     def __init__(
         self, config: Config, accounts: list[Any], smtpd_host: str, smtpd_port: int
@@ -56,14 +60,12 @@ class ReceiverSmtpdAuth(AuthAbc):
         super().__init__(accounts)
         self.config_receiver_smtpd = config.receiver.smtpd
 
-        self.response_success = HttpServerResponse(
-            HTTPStatus.OK,
-            [
-                b"Auth-Status: OK",
-                f"Auth-Server: {smtpd_host}".encode(),
-                f"Auth-Port: {smtpd_port}".encode(),
-            ],
-        )
+        self.response_success_headers = [
+            b"Auth-Status: OK",
+            f"Auth-Server: {smtpd_host}".encode(),
+            f"Auth-Port: {smtpd_port}".encode(),
+        ]
+
         self.response_ip_blocked = HttpServerResponse(
             HTTPStatus.OK,
             [b"Auth-Status: Your IP address not in whitelist", b"Auth-Wait: 3"],
@@ -91,8 +93,15 @@ class ReceiverSmtpdAuth(AuthAbc):
         if auth_user is None or auth_pass is None:
             return self.response_failed
 
-        elif self.check_str(username=auth_user, password=auth_pass):
-            return self.response_success
+        auth_checked, auth_ext = self.check_str(username=auth_user, password=auth_pass)
+        if auth_checked:
+            return HttpServerResponse(
+                HTTPStatus.OK,
+                self.response_success_headers
+                + [
+                    f"Auth-User: {json.dumps(auth_ext, separators=(',', ':'))}".encode()
+                ],
+            )
 
         else:
             return self.response_failed
@@ -148,25 +157,27 @@ class SmtpdHandler:
             content_format = MsgContentType.PLAIN
 
         # check some value
-        if self.config_receiver_smtpd.sender_username_equal_from_value:
-            ext_xclient: ExtXclient = getattr(session, "ext_xclient", None)  # type: ignore
-            if ext_xclient is None:
-                return "550 failed to get XCLIENT"
-            username = ext_xclient.get("ADDR", None)
-            if username != from_value:
-                return (
-                    f"550 sender username: {username} is not equal from: {from_value}"
-                )
+        ext_xclient: ExtXclient = getattr(session, "ext_xclient", None)  # type: ignore
+        if ext_xclient is None:
+            return "550 failed to get XCLIENT"  # TODO, support without nginx
+        else:
+            login_str = ext_xclient.get("LOGIN", None)
+            if login_str is None:
+                raise
+            login_info: dict[str, Any] = json.loads(login_str)
+            account_from_value = login_info.get("from_value")
+            if account_from_value and account_from_value != from_value:
+                return f"550 account from_value: {account_from_value} is not equal email from: {from_value}"
 
         if self.config_receiver_smtpd.from_value_regex:
             if (
                 re.match(self.config_receiver_smtpd.from_value_regex, from_value)
                 is None
             ):
-                return f"550 from: {from_value} not allowed"
+                return f"550 email from: {from_value} not allowed"
         if self.config_receiver_smtpd.to_value_regex:
             if re.match(self.config_receiver_smtpd.to_value_regex, from_value) is None:
-                return f"550 to: {to_value} not allowed"
+                return f"550 email to: {to_value} not allowed"
 
         logger.debug(f"Receiver smtpd: {from_value} => {to_value}")
         msg = Msg(

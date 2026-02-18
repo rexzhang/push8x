@@ -11,6 +11,7 @@ WIP:
             ✔ 通过 nginx email api 认证 @done(26-02-15 20:47)
             ✔ nginx ssl 部署支持 @done(26-02-17 16:38)
             ☐ nginx startls  部署支持
+            ☐ session.proxy_data 似乎不需要 ext_proxy_data ?
         ☐ 正确的解析 带附件的邮件 @low
         ☐ 直接在 smtpd 接口上支持认证 @low
     ☐ SenderWebhook
