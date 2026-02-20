@@ -106,13 +106,17 @@ class RuleMatcher:
             async for rule_id, rule, new_msg in RuleMatchAsyncProcessor(
                 rules=self.config.rules, msg=msg
             ):
-                matched = True
+                if rule.skip_if_already_matched_other and matched:
+                    continue
 
                 sender_q = self.sender_q_mapping.get(rule.sender_name)
                 if sender_q is None:
                     raise
-
                 await sender_q.put(new_msg)
+                matched = True
+
+                if rule.skip_other_matched:
+                    break
 
             if matched:
                 continue

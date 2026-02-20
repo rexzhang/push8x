@@ -97,7 +97,6 @@ def _recreate_container(c, container_name: str, docker_run_cmd: str):
 
 @dataclass
 class DeployValue:
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -106,11 +105,11 @@ class DeployValue:
     def _get_value_from_env(self, name: str, default: str | None = None) -> str:
         if default is None:
             value = self._env_value.get(
-                f"{self.APP_NAME.upper()}_{self.DEPLOY_STAGE.upper()}_{name.upper()}"
+                f"{self.APP_NAME.replace("-", "_").upper()}_{self.DEPLOY_STAGE.upper()}_{name.upper()}"
             )
         else:
             value = self._env_value.get(
-                f"{self.APP_NAME.upper()}_{self.DEPLOY_STAGE.upper()}_{name.upper()}",
+                f"{self.APP_NAME.replace("-", "_").upper()}_{self.DEPLOY_STAGE.upper()}_{name.upper()}",
                 default,
             )
 
@@ -136,7 +135,7 @@ class DeployValue:
     def DEPLOY_SSH_USER(self) -> str:
         return self._get_value_from_env("DEPLOY_SSH_USER", "root")
 
-    DEPLOY_WORK_PATH = f"/root/apps/{APP_NAME}"
+    DEPLOY_WORK_PATH = f"~/apps/{APP_NAME}"
 
     # Docker Register
     CR_HOST_NAME = "cr.h.rexzhang.com"
