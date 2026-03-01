@@ -7,7 +7,6 @@ logger = getLogger(__name__)
 
 
 class SenderBlackhole(SenderAbc):
-
     @worker_guardian()
     async def worker(self):
         while True:

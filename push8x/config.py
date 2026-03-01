@@ -171,6 +171,8 @@ RULE_NEW_KEYS = ("from_name", "from_value", "to_name", "to_value", "title", "con
 class Rule:
     sender_name: str
 
+    enable: bool = True
+
     # match logic ---
     skip_if_already_matched_other: bool = False
     skip_other_matched: bool = False

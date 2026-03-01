@@ -20,7 +20,6 @@ class ReceiverWebhookAuth(AuthAbc):
 
 
 class ReceiverWebhook(ReceiverAbc):
-
     @property
     def type(self) -> ReceiverType:
         return ReceiverType.WEBHOOK

@@ -27,6 +27,9 @@ class RuleMatchAsyncProcessor:
             while True:
                 rule_id += 1
                 rule = next(self.rules)
+                if rule.enable is False:
+                    continue
+
                 if not self._msg_match_receiver(rule):
                     continue
 
@@ -94,7 +97,7 @@ class RuleMatcher:
         self.q = q
         self.sender_q_mapping = sender_q_mapping
 
-    @worker_guardian()
+    @worker_guardian(name="ruler")
     async def worker(self):
         # TODO: 3.13+ 使用 QueueShutDown
         while True:

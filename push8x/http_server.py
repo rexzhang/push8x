@@ -129,7 +129,7 @@ class HttpServer:
             smtpd_port=config.receiver.smtpd.port,
         )
 
-    @worker_guardian()
+    @worker_guardian(name="server:http")
     async def worker(self):
         loop = asyncio.get_running_loop()
         server = await loop.create_server(

@@ -15,15 +15,14 @@ class ReceiverAbc:
         raise NotImplementedError
 
     @property
-    def name(self) -> str:
-        """Receiver, name same as type"""
-        return self.type.value
+    def worker_name(self) -> str:
+        return f"receiver:{self.type.value}"
 
     def __init__(self, config: Config, rule_matcher_q: MsgQueue) -> None:
         self.config = config
         self.rule_matcher_q = rule_matcher_q
 
-    async def worker_recevier(self):
+    async def worker_listen(self):
         raise NotImplementedError
 
     async def worker_processer(self):

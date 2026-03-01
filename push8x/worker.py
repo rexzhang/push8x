@@ -16,7 +16,7 @@ def worker_guardian(
     def decorator(func):
         @functools.wraps(func)
         async def wrapper(self, *args, **kwargs):
-            worker_name = name or getattr(self, "name", func.__name__)
+            worker_name = name or getattr(self, "worker_name", func.__name__)
             retries = 0
             start_time = time.time()
 

@@ -208,8 +208,8 @@ class ReceiverSmtpd(ReceiverAbc):
 
         self.q = Queue()
 
-    @worker_guardian()
-    async def worker_recevier(self):
+    @worker_guardian(name="recevier:smtdp:listen")
+    async def worker_listen(self):
         loop = asyncio.get_running_loop()
         server = await loop.create_server(
             lambda: SMTP(
@@ -224,7 +224,7 @@ class ReceiverSmtpd(ReceiverAbc):
             )
             await server.serve_forever()
 
-    @worker_guardian()
+    @worker_guardian(name="recevier:smtdp:processer")
     async def worker_processer(self):
         while True:
             msg = await self.q.get()

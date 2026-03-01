@@ -121,7 +121,7 @@ class DeployValue:
     APP_NAME = "push8x"
 
     # Target Host
-    DEPLOY_STAGE = "prd"
+    DEPLOY_STAGE = "dev"
 
     @property
     def DEPLOY_SSH_HOST(self) -> str:
@@ -163,7 +163,7 @@ class DeployValue:
     CONTAINER_UID = 1000
 
     def switch_env_prd(self):
-        pass
+        self.DEPLOY_STAGE = "prd"
 
 
 DV = DeployValue()

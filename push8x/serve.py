@@ -61,7 +61,7 @@ async def server(config: Config):
 
     # init receivers
     receiver_smtpd = ReceiverSmtpd(config=config, rule_matcher_q=rule_matcher_q)
-    workers.append(receiver_smtpd.worker_recevier())
+    workers.append(receiver_smtpd.worker_listen())
     workers.append(receiver_smtpd.worker_processer())
 
     receiver_webhook_q = MsgQueue()

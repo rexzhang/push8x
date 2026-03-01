@@ -1,5 +1,6 @@
 WIP:
-    v0.1.0
+    ☐ ReceiverX
+        ☐ 允许基于账号打 tag, 给后面的 ruler 使用
     ☐ ReceiverWebhook
         ☐ 支持接受消息
         ✔ 支持基于 token 的认证方式 @done(26-02-15 20:40)
@@ -14,6 +15,7 @@ WIP:
             ☐ session.proxy_data 似乎不需要 ext_proxy_data ?
         ☐ 正确的解析 带附件的邮件 @low
         ☐ 直接在 smtpd 接口上支持认证 @low
+        ☐ new_from_value
     ☐ SenderWebhook
         ☐ 待设计
     ☐ SenderSmtp
@@ -22,10 +24,14 @@ WIP:
         ✔ 基本功能 @done(26-02-11 22:42)
         ☐ 分析通用关键信息,晚上 task 中 message 信息定义
         ☐ 支持代理?
+        ☐ 发送失败后重新发送
     ☐ RuleMatcher
         ✔ 基于通配符的匹配机制 @done(26-02-11 22:44)
         ✔ 支持基于模版的 Msg 参数替换 @done(26-02-15 11:16)
         ✔ 实现一个 CLI 接口,支持通过命令行检查匹配结果 @done(26-02-13 18:43)
+        ☐ drop 了的消息要有一个查看的渠道
+        ☐ match_from_value 有bug
+        ✔ 支持 enable @high @done(26-03-01 14:25)
     ☐ 开发/演进支持
         ☐ dump smtpd 收到的信息,用于分析
         ☐ task 全链路日志跟踪辅助

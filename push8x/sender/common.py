@@ -14,6 +14,10 @@ class SenderAbc:
     def type(self) -> SenderType:
         raise NotImplementedError
 
+    @property
+    def worker_name(self) -> str:
+        return f"sender:{self.sender_config.name}"
+
     def __init__(self, sender_config: SenderConfig, sender_q: MsgQueue) -> None:
         self.sender_config = sender_config
         self.q = sender_q
