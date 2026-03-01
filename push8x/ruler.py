@@ -11,7 +11,7 @@ from .worker import worker_guardian
 logger = getLogger(__name__)
 
 
-class RuleMatchAsyncProcessor:
+class RulerAsyncProcessor:
     msg_template = MsgTemplate()
 
     def __init__(self, rules: list[Rule], msg: Msg) -> None:
@@ -29,6 +29,11 @@ class RuleMatchAsyncProcessor:
                 rule = next(self.rules)
                 if rule.enable is False:
                     continue
+
+                # check mark, if config
+                if rule.mark and self.msg.mark:
+                    if rule.mark != self.msg.mark:
+                        continue
 
                 if not self._msg_match_receiver(rule):
                     continue
@@ -79,13 +84,13 @@ class RuleMatchAsyncProcessor:
         return new_msg
 
 
-class FallbackRuleMatchAsyncProcessor(RuleMatchAsyncProcessor):
+class FallbackRuleMatchAsyncProcessor(RulerAsyncProcessor):
 
     def _msg_match_rule(self, rule) -> bool:
         return True
 
 
-class RuleMatcher:
+class Ruler:
     config: Config
     q: MsgQueue
     sender_q_mapping: SenderQueueMapping
@@ -106,7 +111,7 @@ class RuleMatcher:
 
             matched = False
 
-            async for rule_id, rule, new_msg in RuleMatchAsyncProcessor(
+            async for rule_id, rule, new_msg in RulerAsyncProcessor(
                 rules=self.config.rules, msg=msg
             ):
                 if rule.skip_if_already_matched_other and matched:
@@ -140,7 +145,7 @@ async def rule_tester(config: Config, msg: Msg) -> None:
     print("Input Msg: ", end="")
     pprint(msg)
 
-    async for rule_id, rule, new_msg in RuleMatchAsyncProcessor(
+    async for rule_id, rule, new_msg in RulerAsyncProcessor(
         rules=config.rules, msg=msg
     ):
         matched = True

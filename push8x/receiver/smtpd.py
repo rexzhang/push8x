@@ -156,10 +156,11 @@ class SmtpdHandler:
             content = "\n".join(mail.text_plain)
             content_format = MsgContentType.PLAIN
 
-        # check some value
+        # check/get some value
         ext_xclient: ExtXclient = getattr(session, "ext_xclient", None)  # type: ignore
         if ext_xclient is None:
             return "550 failed to get XCLIENT"  # TODO, support without nginx
+
         else:
             login_str = ext_xclient.get("LOGIN", None)
             if login_str is None:
@@ -168,6 +169,8 @@ class SmtpdHandler:
             account_from_value = login_info.get("from_value")
             if account_from_value and account_from_value != from_value:
                 return f"550 account from_value: {account_from_value} is not equal email from: {from_value}"
+
+            account_mark = login_info.get("mark", "")
 
         if self.config_receiver_smtpd.from_value_regex:
             if (
@@ -190,6 +193,7 @@ class SmtpdHandler:
             content_format=content_format,
             ext=dict(),
             receiver=ReceiverType.SMTPD,
+            mark=account_mark,
         )
 
         await self.q.put(msg)
@@ -203,8 +207,8 @@ class ReceiverSmtpd(ReceiverAbc):
     def type(self) -> ReceiverType:
         return ReceiverType.SMTPD
 
-    def __init__(self, config: Config, rule_matcher_q: MsgQueue) -> None:
-        super().__init__(config, rule_matcher_q)
+    def __init__(self, config: Config, ruler_q: MsgQueue) -> None:
+        super().__init__(config, ruler_q)
 
         self.q = Queue()
 
@@ -229,4 +233,4 @@ class ReceiverSmtpd(ReceiverAbc):
         while True:
             msg = await self.q.get()
 
-            await self.rule_matcher_q.put(msg)
+            await self.ruler_q.put(msg)

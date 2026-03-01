@@ -106,6 +106,7 @@ class HttpServerProtocol(asyncio.Protocol):
                 content_format=MsgContentType.PLAIN,
                 ext=dict(),
                 receiver=ReceiverType.WEBHOOK,
+                mark="",
             )
         )
         return HttpServerResponse(HTTPStatus.OK)

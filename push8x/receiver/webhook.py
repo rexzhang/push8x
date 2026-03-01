@@ -24,8 +24,8 @@ class ReceiverWebhook(ReceiverAbc):
     def type(self) -> ReceiverType:
         return ReceiverType.WEBHOOK
 
-    def __init__(self, config: Config, q: MsgQueue, rule_matcher_q: MsgQueue) -> None:
-        super().__init__(config, rule_matcher_q)
+    def __init__(self, config: Config, q: MsgQueue, ruler_q: MsgQueue) -> None:
+        super().__init__(config, ruler_q)
         self.q = q
 
     @worker_guardian()
@@ -33,4 +33,4 @@ class ReceiverWebhook(ReceiverAbc):
         while True:
             msg = await self.q.get()
             # TODO: parse webhook payload
-            await self.rule_matcher_q.put(msg)
+            await self.ruler_q.put(msg)

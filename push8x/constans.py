@@ -80,6 +80,7 @@ class Msg:
 
     # control info
     receiver: ReceiverType
+    mark: str
     # rule_id: int = field(init=False)
 
 

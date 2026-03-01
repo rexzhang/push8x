@@ -16,7 +16,7 @@ from .constans import (
     MsgContentType,
     ReceiverType,
 )
-from .rule import rule_tester
+from .ruler import rule_tester
 from .serve import main as serve_main
 
 app = typer.Typer()
@@ -89,8 +89,9 @@ def ruletest(
     content: str = typer.Option("This is a test mail from Push8X"),
     content_format: MsgContentType = typer.Option(MsgContentType.PLAIN),
     receiver: ReceiverType = typer.Option(ReceiverType.SMTPD),
+    mark: str = typer.Option(""),
 ) -> Any:
-    """Rule Matcher test tool."""
+    """Rules test tool."""
     reinit_config(state.config_filename)
     from .config import config
 
@@ -104,6 +105,7 @@ def ruletest(
         content_format=content_format,
         ext=dict(),
         receiver=receiver,
+        mark=mark,
     )
 
     asyncio.run(rule_tester(config, msg))

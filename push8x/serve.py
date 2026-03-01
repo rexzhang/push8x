@@ -10,7 +10,7 @@ from .constans import MsgQueue, SenderQueueMapping, SenderType
 from .http_server import HttpServer
 from .receiver.smtpd import ReceiverSmtpd
 from .receiver.webhook import ReceiverWebhook
-from .rule import RuleMatcher
+from .ruler import Ruler
 from .sender.apprise import SenderApprise
 from .sender.balckhole import SenderBlackhole
 from .sender.smtp import SenderSmtp
@@ -52,21 +52,19 @@ async def server(config: Config):
         workers.append(sender_obj.worker())
         sender_q_mapping[sender_config.name] = sender_q
 
-    # init rule matcher
-    rule_matcher_q = MsgQueue()
-    rule_matcher = RuleMatcher(
-        config=config, q=rule_matcher_q, sender_q_mapping=sender_q_mapping
-    )
-    workers.append(rule_matcher.worker())
+    # init ruler
+    ruler_q = MsgQueue()
+    ruler = Ruler(config=config, q=ruler_q, sender_q_mapping=sender_q_mapping)
+    workers.append(ruler.worker())
 
     # init receivers
-    receiver_smtpd = ReceiverSmtpd(config=config, rule_matcher_q=rule_matcher_q)
+    receiver_smtpd = ReceiverSmtpd(config=config, ruler_q=ruler_q)
     workers.append(receiver_smtpd.worker_listen())
     workers.append(receiver_smtpd.worker_processer())
 
     receiver_webhook_q = MsgQueue()
     receiver_webhook = ReceiverWebhook(
-        config=config, q=receiver_webhook_q, rule_matcher_q=rule_matcher_q
+        config=config, q=receiver_webhook_q, ruler_q=ruler_q
     )
     workers.append(receiver_webhook.worker_processer())
 

@@ -82,9 +82,11 @@ class ReceiverWebhook(ReceiverAbc):
 class ReceiverSmtpdAccount:
     username: str  # can be a email address or just a string
     password: str
+
     from_value: str | None = (
         None  # if is not None, will check email's from. TODO: support regex
     )
+    mark: str = ""  # for ruler, if empty mean no mark
 
 
 @dataclass
@@ -170,7 +172,6 @@ RULE_NEW_KEYS = ("from_name", "from_value", "to_name", "to_value", "title", "con
 @dataclass
 class Rule:
     sender_name: str
-
     enable: bool = True
 
     # match logic ---
@@ -179,6 +180,7 @@ class Rule:
 
     # for match, None is mean ANY
     receiver: ReceiverType | None = None
+    mark: str = ""
 
     match_from_value: str | None = None
     match_to_value: str | None = None
