@@ -3,7 +3,7 @@ from logging import getLogger
 
 from rich.pretty import pprint
 
-from .config import RULE_NEW_KEYS, Config, Rule
+from .config import RULE_MATCH_KEYS, RULE_NEW_KEYS, RULS_SKIP_KEYS, Config, Rule
 from .constans import Msg, MsgQueue, SenderQueueMapping
 from .template import MsgTemplate
 from .worker import worker_guardian
@@ -30,15 +30,10 @@ class RulerAsyncProcessor:
                 if rule.enable is False:
                     continue
 
-                # check mark, if config
-                if rule.mark and self.msg.mark:
-                    if rule.mark != self.msg.mark:
-                        continue
-
-                if not self._msg_match_receiver(rule):
+                if self._skip_logic(rule):
                     continue
 
-                if not self._msg_match_rule(rule):
+                if not self._match_logic(rule):
                     continue
 
                 return rule_id, rule, self._convert_msg_context(rule)
@@ -46,30 +41,27 @@ class RulerAsyncProcessor:
         except StopIteration:
             raise StopAsyncIteration
 
-    def _msg_match_receiver(self, rule: Rule) -> bool:
-        if rule.receiver is None:
+    def _skip_logic(self, rule: Rule) -> bool:
+        if rule.skip_receiver is not None or rule.skip_receiver == self.msg.receiver:
             return True
 
-        if self.msg.receiver == rule.receiver:
-            return True
+        for k in RULS_SKIP_KEYS:
+            msg_x = getattr(self.msg, k)
+            rule_skip_x = getattr(rule, f"skip_{k}")
+            if rule_skip_x is not None and fnmatch.fnmatch(msg_x, rule_skip_x):
+                return True
 
         return False
 
-    def _msg_match_rule(self, rule: Rule) -> bool:
-        if rule.match_from_value is not None and not fnmatch.fnmatch(
-            self.msg.from_value, rule.match_from_value
-        ):
+    def _match_logic(self, rule: Rule) -> bool:
+        if rule.match_receiver is not None and rule.match_receiver != self.msg.receiver:
             return False
 
-        if rule.match_to_value is not None and not fnmatch.fnmatch(
-            self.msg.to_value, rule.match_to_value
-        ):
-            return False
-
-        if rule.match_title is not None and not fnmatch.fnmatch(
-            self.msg.title, rule.match_title
-        ):
-            return False
+        for k in RULE_MATCH_KEYS:
+            msg_x = getattr(self.msg, k)
+            rule_match_x = getattr(rule, f"match_{k}")
+            if rule_match_x is not None and not fnmatch.fnmatch(msg_x, rule_match_x):
+                return False
 
         return True
 
@@ -82,12 +74,6 @@ class RulerAsyncProcessor:
                 setattr(new_msg, k, self.msg_template.render(new_x, {"msg": self.msg}))
 
         return new_msg
-
-
-class FallbackRuleMatchAsyncProcessor(RulerAsyncProcessor):
-
-    def _msg_match_rule(self, rule) -> bool:
-        return True
 
 
 class Ruler:
@@ -114,7 +100,7 @@ class Ruler:
             async for rule_id, rule, new_msg in RulerAsyncProcessor(
                 rules=self.config.rules, msg=msg
             ):
-                if rule.skip_if_already_matched_other and matched:
+                if rule.ignore_if_matched_other_rule and matched:
                     continue
 
                 sender_q = self.sender_q_mapping.get(rule.sender_name)
@@ -123,47 +109,22 @@ class Ruler:
                 await sender_q.put(new_msg)
                 matched = True
 
-                if rule.skip_other_matched:
+                if rule.ignore_other_rule_if_matched:
                     break
 
             if matched:
                 continue
 
-            async for rule_id, rule, new_msg in FallbackRuleMatchAsyncProcessor(
-                rules=self.config.fallback_rules, msg=msg
-            ):
-                sender_q = self.sender_q_mapping.get(rule.sender_name)
-                if sender_q is None:
-                    raise
-
-                await sender_q.put(new_msg)
-
 
 async def rule_tester(config: Config, msg: Msg) -> None:
-    matched = False
-
     print("Input Msg: ", end="")
     pprint(msg)
 
     async for rule_id, rule, new_msg in RulerAsyncProcessor(
         rules=config.rules, msg=msg
     ):
-        matched = True
-
         print("Matche Rule ---")
         print(f"RuleID:#{rule_id}, ", end="")
-        pprint(rule)
-        print("Ouput Msg: ", end="")
-        pprint(new_msg)
-
-    if matched:
-        return
-
-    async for rule_id, rule, new_msg in FallbackRuleMatchAsyncProcessor(
-        rules=config.fallback_rules, msg=msg
-    ):
-        print("Matche Fallback Rule ---")
-        print(f"FallbackRuleID:#{rule_id}, ", end="")
         pprint(rule)
         print("Ouput Msg: ", end="")
         pprint(new_msg)

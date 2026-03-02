@@ -59,12 +59,13 @@ match_title = "*some*"
 # 当为 true 时: 消息/msg 匹配本 rule 后, 会忽略后续所有 rule
 # - 常用于确保回落(fallback)只执行一次
 # - 也可以用于确保 消息/msg 不被意外的被后续 rule 匹配
-ignore_other_rule_if_match = false
+ignore_other_rule_if_matched = false
 
-# 转换/new_* 逻辑组 ---
+# 渲染/new_* 逻辑组 ---
 # 默认值: 空, 不处理
-# - 在将 消息/msg 转交给 sender 前, 对 msg 做必要的调整
+# - 在将 消息/msg 转交给 sender 前, 使用设置的的模版生成新的内容
 # - 使用 jinja2 模版语言
+# - 当前支持的 namespace: msg
 new_from_name = "{{ msg.from_name }}"
 new_from_value = "{{ msg.from_value }}"
 new_to_name = "{{ msg.to_name }}"

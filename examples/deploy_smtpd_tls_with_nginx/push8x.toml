@@ -46,7 +46,7 @@ match_mark = "mark1"
 sender_name = "smtp"
 
 # 消息在匹配到这一条 rule 后不会再匹配后续任何 rule
-ignore_other_rule_if_match = true
+ignore_other_rule_if_matched = true
 
 [[rules]]
 # 将所有收到的消息均通过 sender.apprise 推送到手机

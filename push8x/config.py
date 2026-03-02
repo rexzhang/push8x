@@ -164,35 +164,59 @@ class SenderApprise(ProviderAbc, JSONPyWizard):
 
 SenderConfig: TypeAlias = SenderBlackhole | SenderWebhook | SenderSmtp | SenderApprise
 
-# rules/fallback_rules ---
+# rules ---
 
+RULS_SKIP_KEYS = ("mark", "from_name", "from_value", "to_name", "to_value", "title")
+RULE_MATCH_KEYS = ("mark", "from_name", "from_value", "to_name", "to_value", "title")
 RULE_NEW_KEYS = ("from_name", "from_value", "to_name", "to_value", "title", "content")
 
 
 @dataclass
 class Rule:
     sender_name: str
+
     enable: bool = True
+    name: str = ""
 
-    # match logic ---
-    skip_if_already_matched_other: bool = False
-    skip_other_matched: bool = False
+    # special logic - check before other condition
+    ignore_if_matched_other_rule: bool = False
 
-    # for match, None is mean ANY
-    receiver: ReceiverType | None = None
-    mark: str = ""
+    # skip_* logic ---
+    # - None is mean ignore
+    # - match ANYONE mean skip all
+    skip_receiver: ReceiverType | None = None
 
+    skip_mark: str | None = None
+
+    skip_from_name: str | None = None
+    skip_from_value: str | None = None
+    skip_to_name: str | None = None
+    skip_from_value: str | None = None
+    skip_to_value: str | None = None
+    skip_title: str | None = None
+
+    # match_* logic ---
+    # - None is mean ignore/ANY
+    # - ONLY match ALL mean match
+    match_receiver: ReceiverType | None = None
+
+    match_mark: str | None = None
+
+    match_from_name: str | None = None
     match_from_value: str | None = None
+    match_to_name: str | None = None
     match_to_value: str | None = None
     match_title: str | None = None
 
-    # convert logic ---
+    # special logic - only for matched msg
+    ignore_other_rule_if_matched: bool = False
+
+    # new_*(render) logic ---
     # for output new Msg, replace/template
     new_from_name: str | None = None
     new_from_value: str | None = None
     new_to_name: str | None = None
     new_to_value: str | None = None
-
     new_title: str | None = None
     new_content: str | None = None
 
@@ -216,10 +240,9 @@ class Config(JSONPyWizard):
     )
 
     rules: list[Rule] = field(default_factory=list)
-    fallback_rules: list[Rule] = field(default_factory=list)
 
     def _complete_config(self) -> None:
-        # check senders ---
+        # senders ---
         has_sender_blackhole = False
         has_sender_apprise = False
 
@@ -240,6 +263,11 @@ class Config(JSONPyWizard):
             self.senders.append(SenderBlackhole(type=SenderType.BALCKHOLE))
         if not has_sender_apprise:
             self.senders.append(SenderApprise(type=SenderType.APPRISE))
+
+        # rules ---
+        for index in range(len(self.rules)):
+            if self.rules[index].name == "":
+                self.rules[index].name = f"R{index+1:03d}"
 
 
 def generate_config_from_dict(
