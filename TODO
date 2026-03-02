@@ -1,11 +1,11 @@
 WIP:
-    ☐ ReceiverX
+    ☐ Receiver
         ☐ 允许基于账号打 mark, 给后面的 mark 使用
-    ☐ ReceiverWebhook
+    ☐ receiver.webhook
         ☐ 支持接受消息
         ✔ 支持基于 token 的认证方式 @done(26-02-15 20:40)
         ☐ 完整的 payload 设计
-    ☐ ReceiverSmtpd
+    ☐ receiver.smtpd
         ✔ 正确的解析 text 格式邮件 @done(26-02-13 15:06)
         ✔ 正确的解析 html 格式邮件 @done(26-02-13 15:07)
         ☐ 基于 nginx 的安全防护
@@ -16,11 +16,13 @@ WIP:
         ☐ 正确的解析 带附件的邮件 @low
         ☐ 直接在 smtpd 接口上支持认证 @low
         ☐ new_from_value
-    ☐ SenderWebhook
+    ☐ sender.blackhole
+        ☐ 完善为 debug 工具
+    ☐ sender.webhook
         ☐ 待设计
-    ☐ SenderSmtp
+    ☐ sender.smtp
         ✔ 支持邮件发送的回落 @done(26-02-14 15:12)
-    ☐ SenderApprise
+    ☐ sender.apprise
         ✔ 基本功能 @done(26-02-11 22:42)
         ☐ 分析通用关键信息,晚上 task 中 message 信息定义
         ☐ 支持代理?

@@ -1,0 +1,36 @@
+# 不需要显式定义 receivers.smtpd, 默认启用
+# - name 为 smtpd
+# - 默认不使用用户名/密码
+# 不需要显式定义 sender.apprise, 默认启用; name 为 apprise
+
+[[senders]]
+type = "smtp"
+# name = "smtp"  # 默认使用 type 作为 sender 的 name
+host = "smtp.example.com"
+port = 465
+username = "username@example.com"
+password = "password"
+
+[[rules]]
+# 消息匹配 ---
+# 所有 to_value 为 @example.com 后缀的都会匹配这条规则
+match_to_value = "*@example.com"
+
+# 匹配后的 sender 为 apprise ---
+sender_name = "apprise"
+
+# 在消息交给 sender 前做调整 ---
+# 来源的 to_value 是一个邮件地址 receiver.m@example.com; 需要重新定义 to_value, 这样 sender.apprise 才能正确的处理
+new_to_value = "pover://user@token"
+# 因为通过 sender.apprise 推送信息时会丢失 from_name/from_value 等信息
+# 所以使用模版机制重新生成 title 的内容, msg 为消息对象在模版中 namespace
+new_title = "{{ msg.title }} ({{ msg.from_name }}<{{ msg.from_value }}>)"
+
+[[rules]]
+# 不定义任何 match_*, 所以这条规则会匹配所有消息; 目的是确保所有邮件仍然会发送到某一个邮件地址
+
+# 匹配后的 sender 为 smtp
+sender_name = "smtp"
+
+# 将接收邮件地址改为一个专门用于归档的邮箱
+new_to_value = "archive@example.com"

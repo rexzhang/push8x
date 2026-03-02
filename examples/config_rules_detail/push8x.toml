@@ -1,0 +1,73 @@
+# 消息按顺序依次匹配 rules 中定义每一个 rule
+[[rules]]
+# rules 条目中唯一必填项目, 没有默认值
+# - 定义了规则匹配后后续处理的 sender
+sender_name = "smtp"
+
+enable = true # 默认值: true; 当为 false 时: 直接跳过本 rule
+name = ""     # 默认值: ""/R001; 程序会自动生成, 如果需要可以手动设定
+
+# 默认值: false
+# 当为 true 时: 如果 消息/msg 已经匹配过任意一条其他 rule, 忽略(跳过)本 rule
+# - 常用于回落机制(fallback)
+ignore_if_matched_other_rule = false
+
+# 跳过/skip_* 逻辑组 ---
+# - 匹配任意(OR)一条规则均跳过本 rule
+# - 不检测视为不匹配
+# - skip_* 逻辑组先于 match_* 逻辑组执行
+
+# 默认值: 空, 不检测
+# 允许的值: webhook/smtpd
+# 本例中: 如果消息是 receiver.smtpd 收到的, 则跳过本 rule
+skip_receiver = "smtpd"
+
+# 默认值: 空, 不检测
+# 允许的值: 通配符, 使用 fnmatch.fnmatch() 函数, 所以实际支持正则
+skip_mark = "mark1"
+
+# 默认值: 空, 不检测
+# 允许的值: 通配符, 使用 fnmatch.fnmatch() 函数, 所以实际支持正则
+skip_from_name = "*AD*"
+skip_from_value = "ad@example.com"
+skip_to_name = "Jone Smith"
+skip_to_value = "*@example.com"
+skip_title = "*AD*"
+
+# 匹配/match_* 逻辑组 ---
+# - 需要匹配所有(AND)规则才会将 消息/msg 转交给 sender
+# - 不检测的条目视为匹配
+
+# 默认值: 空, 不检测
+# 允许的值: webhook/smtpd
+# 本例中: 如果消息不是 receiver.smtpd 收到的, 则跳过本 rule
+match_receiver = "smtpd"
+
+# 默认值: 空, 不检测
+# 允许的值: 通配符, 使用 fnmatch.fnmatch() 函数, 所以实际支持正则
+match_mark = "mark2"
+
+# 默认值: 空, 不检测
+# 允许的值: 通配符, 使用 fnmatch.fnmatch() 函数, 所以实际支持正则
+match_from_name = "Mr Who"
+match_from_value = "mr.w@example.com"
+match_to_name = "Jone Smith"
+match_to_value = "*@example.com"
+match_title = "*some*"
+
+# 默认值: false
+# 当为 true 时: 消息/msg 匹配本 rule 后, 会忽略后续所有 rule
+# - 常用于确保回落(fallback)只执行一次
+# - 也可以用于确保 消息/msg 不被意外的被后续 rule 匹配
+ignore_other_rule_if_match = false
+
+# 转换/new_* 逻辑组 ---
+# 默认值: 空, 不处理
+# - 在将 消息/msg 转交给 sender 前, 对 msg 做必要的调整
+# - 使用 jinja2 模版语言
+new_from_name = "{{ msg.from_name }}"
+new_from_value = "{{ msg.from_value }}"
+new_to_name = "{{ msg.to_name }}"
+new_to_value = "{{ msg.to_value }}"
+new_title = "{{ msg.title }} ({{ msg.from_name }}<{{ msg.from_value }}>)"
+new_content = "{{ msg.content }}"

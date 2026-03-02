@@ -1,0 +1,65 @@
+[receiver.smtpd]
+# 用于向 nginx 公告 SMTPd 监听的主机和端口
+host = "192.168.1.111"
+port = 8025
+
+[[receiver.smtpd.accounts]]
+# 建议针对每一个应用/app设置一个独立的账户
+username = "user1@example.com"
+password = "password"
+# 当设置了 from_value, receiver.smtpd 会检查每一封邮件的发件人邮件地址,不匹配会直接丢弃
+# 如果不检查,可能在这个消息通过 sender.smtp 发出时,被第三方的邮件服务商拒绝发送
+from_value = "noreply@example.com"
+
+[[receiver.smtpd.accounts]]
+username = "user2@example.com"
+password = "password"
+# 这个账号没有设置 from_value, 所有不会检查发件人邮件地址
+
+[[receiver.smtpd.accounts]]
+username = "user3@example.com"
+password = "password"
+from_value = "noreply@example.com"
+# 通过这个账号接收的消息都会打上 mark 中定义的标记
+# - 标记内容不能包含逗号(",")与空格(" ")
+mark = "mark1"
+
+[[receiver.smtpd.accounts]]
+username = "user4@example.com"
+password = "password"
+from_value = "noreply@example.com"
+mark = "mark2"
+
+[[senders]]
+type = "smtp"
+host = "smtp.example.com"
+port = 465
+username = "username@example.com"
+password = "password"
+
+# 消息按顺序依次匹配 rules 中的规则
+[[rules]]
+# 匹配 mark 为 mark1 的消息
+# 也可以理解为匹配 username 为 user4@example.com 来的消息
+match_mark = "mark1"
+
+sender_name = "smtp"
+
+# 消息在匹配到这一条 rule 后不会再匹配后续任何 rule
+ignore_other_rule_if_match = true
+
+[[rules]]
+# 将所有收到的消息均通过 sender.apprise 推送到手机
+# - 本例中: mark 为 mark1 的不会匹配到这一条 rule
+sender_name = "apprise"
+new_to_value = "pover://user@token"
+
+new_title = "{{ msg.title }} ({{ msg.from_name }}<{{ msg.from_value }}>)"
+
+[[rules]]
+# 如果消息已经匹配过其他任何 rule, 直接跳过这条 rule
+# - 一般这个规则写在最后面, 用于实现 回落/fallback 机制
+# - 本例中: 永远不会匹配到这一条
+ignore_if_matched_other_rule = true
+
+sender_name = "smtp"

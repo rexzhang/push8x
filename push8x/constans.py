@@ -66,7 +66,11 @@ class MsgContentType(Enum):
 
 @dataclass(slots=True)
 class Msg:
-    # notification/message info
+    # control info
+    receiver: ReceiverType
+    mark: str
+
+    # message(notification) info
     from_name: str
     from_value: str
     to_name: str
@@ -76,12 +80,8 @@ class Msg:
     content: str
     content_format: MsgContentType
 
+    # ext info
     ext: dict[str, Any]
-
-    # control info
-    receiver: ReceiverType
-    mark: str
-    # rule_id: int = field(init=False)
 
 
 MsgQueue: TypeAlias = Queue[Msg]
