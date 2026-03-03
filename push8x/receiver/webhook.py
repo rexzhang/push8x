@@ -1,12 +1,8 @@
-from logging import getLogger
-
 from ..auth import AuthAbc
 from ..config import Config
 from ..constans import MsgQueue, ReceiverType
 from ..worker import worker_guardian
 from .common import ReceiverAbc
-
-logger = getLogger(__name__)
 
 
 class ReceiverWebhookAuth(AuthAbc):

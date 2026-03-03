@@ -1,5 +1,4 @@
 from email.message import EmailMessage
-from logging import getLogger
 
 import aiosmtplib
 
@@ -7,8 +6,6 @@ from ..config import SenderSmtp as SenderSmtpConfig
 from ..constans import Msg, SenderType
 from ..worker import worker_guardian
 from .common import SenderAbc
-
-logger = getLogger(__name__)
 
 
 def get_email_from(msg: Msg) -> str:

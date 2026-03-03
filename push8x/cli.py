@@ -96,6 +96,9 @@ def ruletest(
     from .config import config
 
     msg = Msg(
+        receiver=receiver,
+        receiver_smtpd_session=None,
+        matched_rules=list(),
         from_name=from_name,
         from_value=from_value,
         to_name=to_name,
@@ -104,7 +107,6 @@ def ruletest(
         content=content,
         content_format=content_format,
         ext=dict(),
-        receiver=receiver,
         mark=mark,
     )
 

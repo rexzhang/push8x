@@ -2,9 +2,8 @@ import asyncio
 import functools
 import time
 from collections.abc import Coroutine
-from logging import getLogger
 
-logger = getLogger(__name__)
+from loguru import logger
 
 
 def worker_guardian(

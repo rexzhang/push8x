@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import tomllib
 from dataclasses import KW_ONLY, dataclass, field
-from logging import getLogger
 from pathlib import Path
 from typing import Any, TypeAlias
 
 from dataclass_wizard import JSONPyWizard
+from loguru import logger
+
+from push8x.constans import Rule
 
 from .constans import (
     DEFAULT_HTTP_BIND_HOST,
@@ -16,9 +18,6 @@ from .constans import (
     ReceiverType,
     SenderType,
 )
-
-logger = getLogger(__name__)
-
 
 # common ---
 
@@ -163,63 +162,6 @@ class SenderApprise(ProviderAbc, JSONPyWizard):
 
 
 SenderConfig: TypeAlias = SenderBlackhole | SenderWebhook | SenderSmtp | SenderApprise
-
-# rules ---
-
-RULS_SKIP_KEYS = ("mark", "from_name", "from_value", "to_name", "to_value", "title")
-RULE_MATCH_KEYS = ("mark", "from_name", "from_value", "to_name", "to_value", "title")
-RULE_NEW_KEYS = ("from_name", "from_value", "to_name", "to_value", "title", "content")
-
-
-@dataclass
-class Rule:
-    sender_name: str
-
-    enable: bool = True
-    name: str = ""
-
-    # special logic - check before other condition
-    ignore_if_matched_other_rule: bool = False
-
-    # skip_* logic ---
-    # - None is mean ignore
-    # - match ANYONE mean skip all
-    skip_receiver: ReceiverType | None = None
-
-    skip_mark: str | None = None
-
-    skip_from_name: str | None = None
-    skip_from_value: str | None = None
-    skip_to_name: str | None = None
-    skip_from_value: str | None = None
-    skip_to_value: str | None = None
-    skip_title: str | None = None
-
-    # match_* logic ---
-    # - None is mean ignore/ANY
-    # - ONLY match ALL mean match
-    match_receiver: ReceiverType | None = None
-
-    match_mark: str | None = None
-
-    match_from_name: str | None = None
-    match_from_value: str | None = None
-    match_to_name: str | None = None
-    match_to_value: str | None = None
-    match_title: str | None = None
-
-    # special logic - only for matched msg
-    ignore_other_rule_if_matched: bool = False
-
-    # new_*(render) logic ---
-    # for output new Msg, replace/template
-    new_from_name: str | None = None
-    new_from_value: str | None = None
-    new_to_name: str | None = None
-    new_to_value: str | None = None
-    new_title: str | None = None
-    new_content: str | None = None
-
 
 # config ---
 

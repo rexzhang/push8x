@@ -1,9 +1,5 @@
-from logging import getLogger
-
 from ..worker import worker_guardian
 from .common import SenderAbc
-
-logger = getLogger(__name__)
 
 
 class SenderWebhook(SenderAbc):

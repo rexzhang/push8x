@@ -1,13 +1,14 @@
-from logging import getLogger
+from loguru import logger
+from rich import inspect
 
 from ..worker import worker_guardian
 from .common import SenderAbc
-
-logger = getLogger(__name__)
 
 
 class SenderBlackhole(SenderAbc):
     @worker_guardian()
     async def worker(self):
         while True:
-            await self.q.get()
+            msg = await self.q.get()
+            logger.info("sender.blackhole got msg:")
+            inspect(msg, all=True)

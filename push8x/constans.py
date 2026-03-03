@@ -6,6 +6,8 @@ from enum import Enum
 from http import HTTPStatus
 from typing import Any, TypeAlias
 
+from aiosmtpd.smtp import Session as AiosmtpdSession
+
 DEFAULT_CONFIG_FILENAME = "/etc/push8x.toml"
 DEFAULT_HTTP_BIND_HOST = "localhost"
 DEFAULT_HTTP_BIND_PORT = 8000
@@ -45,6 +47,67 @@ class SenderType(Enum):
     APPRISE = "apprise"
 
 
+# rules ---
+
+
+@dataclass
+class Rule:
+    sender_name: str
+
+    enable: bool = True
+    name: str = ""
+
+    # special logic - check before other condition
+    ignore_if_matched_other_rule: bool = False
+
+    # skip_* logic ---
+    # - None is mean ignore
+    # - match ANYONE mean skip all
+    skip_receiver: ReceiverType | None = None
+
+    skip_mark: str | None = None
+
+    skip_from_name: str | None = None
+    skip_from_value: str | None = None
+    skip_to_name: str | None = None
+    skip_from_value: str | None = None
+    skip_to_value: str | None = None
+    skip_title: str | None = None
+
+    # match_* logic ---
+    # - None is mean ignore/ANY
+    # - ONLY match ALL mean match
+    match_receiver: ReceiverType | None = None
+
+    match_mark: str | None = None
+
+    match_from_name: str | None = None
+    match_from_value: str | None = None
+    match_to_name: str | None = None
+    match_to_value: str | None = None
+    match_title: str | None = None
+
+    # special logic - only for matched msg
+    ignore_other_rule_if_matched: bool = False
+
+    # new_*(render) logic ---
+    # for output new Msg, replace/template
+    new_from_name: str | None = None
+    new_from_value: str | None = None
+    new_to_name: str | None = None
+    new_to_value: str | None = None
+    new_title: str | None = None
+    new_content: str | None = None
+
+
+RULS_SKIP_KEYS = ("mark", "from_name", "from_value", "to_name", "to_value", "title")
+RULE_MATCH_KEYS = ("mark", "from_name", "from_value", "to_name", "to_value", "title")
+RULE_NEW_KEYS = ("from_name", "from_value", "to_name", "to_value", "title", "content")
+
+
+# Msg ---
+
+
 class MsgFromToType(Enum):
     EMAIL = "EMAIL"
     WEBHOOK = "WEBHOOK"
@@ -68,7 +131,8 @@ class MsgContentType(Enum):
 class Msg:
     # control info
     receiver: ReceiverType
-    mark: str
+    receiver_smtpd_session: AiosmtpdSession | None
+    matched_rules: list[Rule]
 
     # message(notification) info
     from_name: str
@@ -82,6 +146,7 @@ class Msg:
 
     # ext info
     ext: dict[str, Any]
+    mark: str
 
 
 MsgQueue: TypeAlias = Queue[Msg]

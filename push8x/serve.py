@@ -1,9 +1,9 @@
 import asyncio
 import logging
-import logging.config
 import sys
 from collections.abc import Coroutine
-from logging import getLogger
+
+from loguru import logger
 
 from .config import Config
 from .constans import MsgQueue, SenderQueueMapping, SenderType
@@ -16,8 +16,6 @@ from .sender.balckhole import SenderBlackhole
 from .sender.smtp import SenderSmtp
 from .sender.webhook import SenderWebhook
 from .worker import worker_supervisor
-
-logger = getLogger(__name__)
 
 
 async def server(config: Config):
@@ -77,42 +75,25 @@ async def server(config: Config):
 
 
 def main(config: Config):
+    # loguru
     if config.common.debug:
         logging_level = logging.DEBUG
     else:
         logging_level = logging.INFO
+    logger.add(sys.stdout, level=logging_level)
 
-    logging.basicConfig(stream=sys.stdout, level=logging_level)
-    logging.config.dictConfig(
-        {
-            "version": 1,
-            "disable_existing_loggers": False,
-            "loggers": {
-                # standard lib
-                "mail": {
-                    "level": "WARNING",
-                },
-                "urllib3": {
-                    "level": "WARNING",
-                },
-                # 3rd lib ---
-                # --- receiver
-                "uvicorn": {
-                    "level": "WARNING",
-                },
-                "aiosmtpd": {
-                    "level": "WARNING",
-                },
-                "mailparser": {
-                    "level": "WARNING",
-                },
-                # --- sender
-                "apprise": {
-                    "level": "WARNING",
-                },
-            },
-        }
-    )
+    # logging
+    # standard lib ---
+    logging.getLogger("mail").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    # 3rd lib ---
+    # --- receiver
+    logging.getLogger("uvicorn").setLevel(logging.WARNING)
+    logging.getLogger("aiosmtpd").setLevel(logging.WARNING)
+    logging.getLogger("mailparser").setLevel(logging.WARNING)
+    # --- sender
+    logging.getLogger("apprise").setLevel(logging.WARNING)
+    logging.getLogger("root").setLevel(logging.WARNING)
 
     if config.common.sentry_dsn:
         try:

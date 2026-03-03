@@ -1,9 +1,5 @@
-from logging import getLogger
-
 from ..config import SenderConfig
 from ..constans import MsgQueue, SenderType
-
-logger = getLogger(__name__)
 
 
 class SenderAbc:

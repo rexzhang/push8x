@@ -1,14 +1,20 @@
 import fnmatch
-from logging import getLogger
 
+from loguru import logger
 from rich.pretty import pprint
 
-from .config import RULE_MATCH_KEYS, RULE_NEW_KEYS, RULS_SKIP_KEYS, Config, Rule
-from .constans import Msg, MsgQueue, SenderQueueMapping
+from .config import Config
+from .constans import (
+    RULE_MATCH_KEYS,
+    RULE_NEW_KEYS,
+    RULS_SKIP_KEYS,
+    Msg,
+    MsgQueue,
+    Rule,
+    SenderQueueMapping,
+)
 from .template import MsgTemplate
 from .worker import worker_guardian
-
-logger = getLogger(__name__)
 
 
 class RulerAsyncProcessor:
@@ -16,18 +22,24 @@ class RulerAsyncProcessor:
 
     def __init__(self, rules: list[Rule], msg: Msg) -> None:
         self.rules = iter(rules)
-        self.msg = msg
+        self.matched_rules: list[Rule] = list()
+        self.msg = msg  # readonly
+        self.done = False
 
     def __aiter__(self):
         return self
 
     async def __anext__(self):
-        rule_id = 0
         try:
             while True:
-                rule_id += 1
+                if self.done:
+                    break
+
                 rule = next(self.rules)
                 if rule.enable is False:
+                    continue
+
+                if rule.ignore_if_matched_other_rule and self.matched_rules:
                     continue
 
                 if self._skip_logic(rule):
@@ -36,10 +48,23 @@ class RulerAsyncProcessor:
                 if not self._match_logic(rule):
                     continue
 
-                return rule_id, rule, self._convert_msg_context(rule)
+                self.matched_rules.append(rule)
+                new_msg = self._convert_msg_context(rule)
+                new_msg.matched_rules = self.matched_rules
+
+                if rule.ignore_other_rule_if_matched:
+                    self.done = True
+
+                print(1111)
+                logger.info(
+                    f"Ruler: msg:{self.msg}, match rule:{rule}, new msg:{new_msg}"
+                )
+                return new_msg
 
         except StopIteration:
-            raise StopAsyncIteration
+            pass
+
+        raise StopAsyncIteration
 
     def _skip_logic(self, rule: Rule) -> bool:
         if rule.skip_receiver is not None or rule.skip_receiver == self.msg.receiver:
@@ -95,36 +120,23 @@ class Ruler:
             msg = await self.q.get()
             logger.debug(f"got Msg: {msg}")
 
-            matched = False
-
-            async for rule_id, rule, new_msg in RulerAsyncProcessor(
-                rules=self.config.rules, msg=msg
-            ):
-                if rule.ignore_if_matched_other_rule and matched:
-                    continue
-
+            async for new_msg in RulerAsyncProcessor(rules=self.config.rules, msg=msg):
+                rule = new_msg.matched_rules[-1]
                 sender_q = self.sender_q_mapping.get(rule.sender_name)
                 if sender_q is None:
                     raise
+
                 await sender_q.put(new_msg)
-                matched = True
-
-                if rule.ignore_other_rule_if_matched:
-                    break
-
-            if matched:
-                continue
 
 
 async def rule_tester(config: Config, msg: Msg) -> None:
     print("Input Msg: ", end="")
     pprint(msg)
 
-    async for rule_id, rule, new_msg in RulerAsyncProcessor(
-        rules=config.rules, msg=msg
-    ):
+    async for new_msg in RulerAsyncProcessor(rules=config.rules, msg=msg):
+        rule = new_msg.matched_rules[-1]
         print("Matche Rule ---")
-        print(f"RuleID:#{rule_id}, ", end="")
+        print(f"RuleID:#{rule.name}, ", end="")
         pprint(rule)
         print("Ouput Msg: ", end="")
         pprint(new_msg)

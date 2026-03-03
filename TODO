@@ -14,8 +14,7 @@ WIP:
             ☐ nginx startls  部署支持
             ☐ session.proxy_data 似乎不需要 ext_proxy_data ?
         ☐ 正确的解析 带附件的邮件 @low
-        ☐ 直接在 smtpd 接口上支持认证 @low
-        ☐ new_from_value
+        ✔ 直接在 smtpd 接口上支持认证 @done(26-03-02 23:01)
     ☐ sender.blackhole
         ☐ 完善为 debug 工具
     ☐ sender.webhook
@@ -24,7 +23,7 @@ WIP:
         ✔ 支持邮件发送的回落 @done(26-02-14 15:12)
     ☐ sender.apprise
         ✔ 基本功能 @done(26-02-11 22:42)
-        ☐ 分析通用关键信息,晚上 task 中 message 信息定义
+        ☐ 分析通用关键信息,完善 Msg 信息定义
         ☐ 支持代理?
         ☐ 发送失败后重新发送
     ☐ Ruler
@@ -32,8 +31,7 @@ WIP:
         ✔ 支持基于模版的 Msg 参数替换 @done(26-02-15 11:16)
         ✔ 实现一个 CLI 接口,支持通过命令行检查匹配结果 @done(26-02-13 18:43)
         ☐ drop 了的消息要有一个查看的渠道
-        ☐ match_from_value 有bug
-        ✔ 支持 enable @high @done(26-03-01 14:25)
+        ✔ 支持 enable @done(26-03-01 14:25)
     ☐ 开发/演进支持
         ☐ dump smtpd 收到的信息,用于分析
         ☐ task 全链路日志跟踪辅助

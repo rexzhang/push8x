@@ -1,16 +1,14 @@
 import asyncio
 from http import HTTPStatus  # HTTPMethod
-from logging import getLogger
 
 from httptools import HttpParserError, HttpRequestParser, parse_url
+from loguru import logger
 
 from .config import Config
 from .constans import HttpServerResponse, Msg, MsgContentType, MsgQueue, ReceiverType
 from .receiver.smtpd import ReceiverSmtpdAuth
 from .receiver.webhook import ReceiverWebhookAuth
 from .worker import worker_guardian
-
-logger = getLogger(__name__)
 
 
 class HttpServerProtocol(asyncio.Protocol):
@@ -97,6 +95,9 @@ class HttpServerProtocol(asyncio.Protocol):
 
         await self.webhook_q.put(
             Msg(
+                receiver=ReceiverType.WEBHOOK,
+                receiver_smtpd_session=None,
+                matched_rules=list(),
                 from_name="",
                 from_value="aaaa",
                 to_name="",
@@ -105,7 +106,6 @@ class HttpServerProtocol(asyncio.Protocol):
                 content="content",
                 content_format=MsgContentType.PLAIN,
                 ext=dict(),
-                receiver=ReceiverType.WEBHOOK,
                 mark="",
             )
         )

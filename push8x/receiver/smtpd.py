@@ -3,13 +3,13 @@ import json
 import re
 from asyncio import Queue
 from http import HTTPStatus
-from logging import getLogger
 from typing import Any, TypedDict
 
 import mailparser
 from aiosmtpd.proxy_protocol import ProxyData
 from aiosmtpd.smtp import SMTP as SMTPAbc
 from aiosmtpd.smtp import Envelope, Session
+from loguru import logger
 from rich import inspect
 
 from ..auth import AuthAbc
@@ -24,8 +24,6 @@ from ..constans import (
 )
 from ..worker import worker_guardian
 from .common import ReceiverAbc
-
-logger = getLogger(__name__)
 
 
 class ExtXclient(TypedDict):
@@ -78,7 +76,7 @@ class ReceiverSmtpdAuth(AuthAbc):
     def check_headers(self, headers: HttpHeaders) -> HttpServerResponse:
         """https://nginx.org/en/docs/mail/ngx_mail_auth_http_module.html"""
 
-        inspect(headers)
+        inspect(headers, all=True)
 
         # check sender_ip_whitelist
         if self.config_receiver_smtpd.sender_ip_whitelist and (
@@ -126,9 +124,7 @@ class SmtpdHandler:
         return "250 OK"
 
     async def handle_DATA(self, server: SMTP, session: Session, envelope: Envelope):
-        inspect(server)
         inspect(session)
-        inspect(envelope)
 
         # parse mail
         mail: mailparser.MailParser = mailparser.parse_from_bytes(
@@ -184,6 +180,9 @@ class SmtpdHandler:
 
         logger.debug(f"Receiver smtpd: {from_value} => {to_value}")
         msg = Msg(
+            receiver=ReceiverType.SMTPD,
+            receiver_smtpd_session=session,
+            matched_rules=list(),
             from_name=from_name,
             from_value=from_value,
             to_name=to_name,
@@ -192,7 +191,6 @@ class SmtpdHandler:
             content=content,
             content_format=content_format,
             ext=dict(),
-            receiver=ReceiverType.SMTPD,
             mark=account_mark,
         )
 
