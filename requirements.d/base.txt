@@ -17,3 +17,4 @@ dataclass-wizard[dotenv]
 # CLI
 typer
 rich
+loguru
