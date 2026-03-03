@@ -80,6 +80,7 @@ def main(config: Config):
         logging_level = logging.DEBUG
     else:
         logging_level = logging.INFO
+    logger.remove()
     logger.add(sys.stdout, level=logging_level)
 
     # logging
@@ -93,7 +94,6 @@ def main(config: Config):
     logging.getLogger("mailparser").setLevel(logging.WARNING)
     # --- sender
     logging.getLogger("apprise").setLevel(logging.WARNING)
-    logging.getLogger("root").setLevel(logging.WARNING)
 
     if config.common.sentry_dsn:
         try:
