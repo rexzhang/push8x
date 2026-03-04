@@ -105,6 +105,7 @@ class HttpServerProtocol(asyncio.Protocol):
                 title="title",
                 content="content",
                 content_format=MsgContentType.PLAIN,
+                attachments=list(),
                 ext=dict(),
                 mark="",
             )

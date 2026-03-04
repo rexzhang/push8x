@@ -128,7 +128,7 @@ class Ruler:
                 rule = new_msg.matched_rules[-1]
                 sender_q = self.sender_q_mapping.get(rule.sender_name)
                 if sender_q is None:
-                    raise
+                    raise Exception("Codebase error: sender_q is None")
 
                 await sender_q.put(new_msg)
                 matched = True

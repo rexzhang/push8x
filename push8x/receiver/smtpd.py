@@ -11,6 +11,7 @@ from aiosmtpd.smtp import SMTP as SMTPAbc
 from aiosmtpd.smtp import Envelope, Session
 from loguru import logger
 from rich import inspect
+from rich.pretty import pprint
 
 from ..auth import AuthAbc
 from ..config import Config
@@ -25,33 +26,10 @@ from ..constans import (
 from ..worker import worker_guardian
 from .common import ReceiverAbc
 
-
-class ExtXclient(TypedDict):
-    ADDR: str
-    LOGIN: str
-    NAME: str
-
-
-class SMTP(SMTPAbc):
-
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault("proxy_protocol_timeout", 3.0)  # for handle_PROXY
-
-        super().__init__(*args, **kwargs)
-
-    async def smtp_XCLIENT(self, arg):
-        # "ADDR=1.2.3.4 LOGIN=user@me.com"
-        ext_xclient: ExtXclient = dict(
-            item.split("=", 1) for item in arg.split() if "=" in item
-        )  # type: ignore
-
-        setattr(self.session, "ext_xclient", ext_xclient)
-        await self.push("250 OK")
+# SMTPd for http auth ---
 
 
 class ReceiverSmtpdAuth(AuthAbc):
-    """for http api"""
-
     def __init__(
         self, config: Config, accounts: list[Any], smtpd_host: str, smtpd_port: int
     ) -> None:
@@ -76,7 +54,8 @@ class ReceiverSmtpdAuth(AuthAbc):
     def check_headers(self, headers: HttpHeaders) -> HttpServerResponse:
         """https://nginx.org/en/docs/mail/ngx_mail_auth_http_module.html"""
 
-        inspect(headers, all=True)
+        # inspect(headers, all=True)
+        pprint(headers)
 
         # check sender_ip_whitelist
         if self.config_receiver_smtpd.sender_ip_whitelist and (
@@ -103,6 +82,36 @@ class ReceiverSmtpdAuth(AuthAbc):
 
         else:
             return self.response_failed
+
+
+# for SMTP port listen
+
+
+class ExtXclient(TypedDict):
+    ADDR: str
+    LOGIN: str
+    NAME: str
+
+
+class SMTP(SMTPAbc):
+
+    def __init__(self, support_proxy_protocol: bool, *args, **kwargs):
+        if support_proxy_protocol:
+            # behind proxy, enable proxy protocol support
+            logger.info("receiver.smtpd: `support proxy protocol` has been enabled")
+            kwargs.setdefault("proxy_protocol_timeout", 3.0)
+
+        super().__init__(*args, **kwargs)
+
+    async def smtp_XCLIENT(self, arg):
+        print(1111)
+        # "ADDR=1.2.3.4 LOGIN=user@me.com"
+        ext_xclient: ExtXclient = dict(
+            item.split("=", 1) for item in arg.split() if "=" in item
+        )  # type: ignore
+
+        setattr(self.session, "ext_xclient", ext_xclient)
+        await self.push("250 OK")
 
 
 class SmtpdHandler:
@@ -152,21 +161,40 @@ class SmtpdHandler:
             content = "\n".join(mail.text_plain)
             content_format = MsgContentType.PLAIN
 
-        # check/get some value
-        ext_xclient: ExtXclient = getattr(session, "ext_xclient", None)  # type: ignore
-        if ext_xclient is None:
-            return "550 failed to get XCLIENT"  # TODO, support without nginx
+        attachments = []
+        if mail.attachments:
+            for attachment in mail.attachments:
+                attachments.append(
+                    {
+                        "filename": attachment.get("filename"),
+                        "content_type": attachment.get("mail_content_type"),
+                        "content_transfer_encoding": attachment.get(
+                            "content_transfer_encoding"
+                        ),
+                        "payload": attachment.get("payload"),
+                    }
+                )
 
+        if self.config_receiver_smtpd.behind_proxy:
+            # behind proxy
+            ext_xclient: ExtXclient = getattr(session, "ext_xclient", None)  # type: ignore
+            if ext_xclient is None:
+                return "550 failed to get XCLIENT"
+
+            else:
+                login_str = ext_xclient.get("LOGIN", None)
+                if login_str is None:
+                    raise
+                login_info: dict[str, Any] = json.loads(login_str)
+                account_from_value = login_info.get("from_value")
+                if account_from_value and account_from_value != from_value:
+                    return f"550 account from_value: {account_from_value} is not equal email from: {from_value}"
+
+                account_mark = login_info.get("mark", "")
         else:
-            login_str = ext_xclient.get("LOGIN", None)
-            if login_str is None:
-                raise
-            login_info: dict[str, Any] = json.loads(login_str)
-            account_from_value = login_info.get("from_value")
-            if account_from_value and account_from_value != from_value:
-                return f"550 account from_value: {account_from_value} is not equal email from: {from_value}"
-
-            account_mark = login_info.get("mark", "")
+            # direct
+            # TODO, support without nginx
+            account_mark = ""
 
         if self.config_receiver_smtpd.from_value_regex:
             if (
@@ -190,6 +218,7 @@ class SmtpdHandler:
             title=title,
             content=content,
             content_format=content_format,
+            attachments=attachments,
             ext=dict(),
             mark=account_mark,
         )
@@ -215,7 +244,9 @@ class ReceiverSmtpd(ReceiverAbc):
         loop = asyncio.get_running_loop()
         server = await loop.create_server(
             lambda: SMTP(
-                SmtpdHandler(config=self.config, process_q=self.q), enable_SMTPUTF8=True
+                handler=SmtpdHandler(config=self.config, process_q=self.q),
+                enable_SMTPUTF8=True,
+                support_proxy_protocol=self.config.receiver.smtpd.behind_proxy,
             ),
             host=self.config.receiver.smtpd.bind.host,
             port=self.config.receiver.smtpd.bind.port,

@@ -1,5 +1,5 @@
 from loguru import logger
-from rich import inspect
+from rich.pretty import pprint
 
 from ..worker import worker_guardian
 from .common import SenderAbc
@@ -11,4 +11,4 @@ class SenderBlackhole(SenderAbc):
         while True:
             msg = await self.q.get()
             logger.info("sender.blackhole got msg:")
-            inspect(msg, all=True)
+            pprint(msg)

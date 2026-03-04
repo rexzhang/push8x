@@ -106,6 +106,7 @@ def ruletest(
         title=title,
         content=content,
         content_format=content_format,
+        attachments=list(),
         ext=dict(),
         mark=mark,
     )

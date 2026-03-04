@@ -41,7 +41,7 @@ class ReceiverType(Enum):
 
 
 class SenderType(Enum):
-    BALCKHOLE = "balckhole"
+    BALCKHOLE = "blackhole"
     WEBHOOK = "webhook"
     SMTP = "smtp"
     APPRISE = "apprise"
@@ -143,6 +143,7 @@ class Msg:
     title: str
     content: str
     content_format: MsgContentType
+    attachments: list[dict[str, Any]]
 
     # ext info
     ext: dict[str, Any]

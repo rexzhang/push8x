@@ -1,4 +1,7 @@
 WIP:
+    ☐ config
+        ☐ 配置信息逻辑自检
+            ☐ sender_name
     ☐ Receiver
         ☐ 允许基于账号打 mark, 给后面的 mark 使用
     ☐ receiver.webhook

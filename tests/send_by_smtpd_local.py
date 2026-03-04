@@ -8,10 +8,10 @@ from aiosmtplib import SMTP
 
 async def send_async_email(message: email.message.EmailMessage | email.message.Message):
     # smtp_client = SMTP(hostname="smtp.example.com", port=465, use_tls=True)
-    smtp_client = SMTP(hostname="127.0.01", port=8025, use_tls=False)
+    smtp_client = SMTP(hostname="localhost", port=8025, use_tls=False)
 
     async with smtp_client:
-        # await smtp_client.login("sender@example.com", "your_auth_token")
+        # await smtp_client.login("sender1@example.com", "password")
         await smtp_client.send_message(message)
         print("邮件已异步发送成功！")
 

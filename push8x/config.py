@@ -101,19 +101,22 @@ class ReceiverSmtpd(ReceiverAbc):
     def type(self) -> ReceiverType:
         return ReceiverType.SMTPD
 
+    # deploy ---
     bind: Bind = field(
         default_factory=lambda: Bind(DEFAULT_SMTPD_BIND_HOST, DEFAULT_SMTPD_BIND_PORT)
     )
+    # --- support proxy protocol
+    behind_proxy: bool = False
+    # announcement TODO: rename => report?
+    host: str = DEFAULT_SMTPD_BIND_HOST
+    port: int = DEFAULT_SMTPD_BIND_PORT
 
+    # sender control
     accounts: list[ReceiverSmtpdAccount] = field(default_factory=list)
 
     sender_ip_whitelist: set[str] = field(default_factory=set)
     from_value_regex: str | None = None
     to_value_regex: str | None = None
-
-    # announcement TODO: rename => report?
-    host: str = DEFAULT_SMTPD_BIND_HOST
-    port: int = DEFAULT_SMTPD_BIND_PORT
 
 
 @dataclass

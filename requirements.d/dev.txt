@@ -6,3 +6,4 @@ aiosmtplib
 fabric
 icecream
 dotenv
+pillow
