@@ -30,6 +30,12 @@ class Common:
 
 
 @dataclass
+class Logging:
+    log_ruler_matched_msg: bool = True
+    log_ruler_droped_msg: bool = False
+
+
+@dataclass
 class Bind:
     host: str = DEFAULT_HTTP_BIND_HOST
     port: int = DEFAULT_HTTP_BIND_PORT
@@ -173,6 +179,8 @@ class Config(JSONPyWizard):
         auto_assign_tags = False
 
     common: Common = field(default_factory=Common)
+    logging: Logging = field(default_factory=Logging)
+
     http_server: HttpServer = field(default_factory=HttpServer)
 
     receiver: ReceiverContainer = field(default_factory=ReceiverContainer)

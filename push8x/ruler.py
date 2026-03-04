@@ -18,12 +18,15 @@ from .worker import worker_guardian
 
 
 class RulerAsyncProcessor:
-    msg_template = MsgTemplate()
 
-    def __init__(self, rules: list[Rule], msg: Msg) -> None:
-        self.rules = iter(rules)
+    def __init__(self, config: Config, msg: Msg) -> None:
+        self.logging = config.logging
+
+        self.rules = iter(config.rules)
+        self.msg = msg
+        self.msg_template = MsgTemplate()
+
         self.matched_rules: list[Rule] = list()
-        self.msg = msg  # readonly
         self.done = False
 
     def __aiter__(self):
@@ -55,10 +58,10 @@ class RulerAsyncProcessor:
                 if rule.ignore_other_rule_if_matched:
                     self.done = True
 
-                print(1111)
-                logger.info(
-                    f"Ruler: msg:{self.msg}, match rule:{rule}, new msg:{new_msg}"
-                )
+                if self.logging.log_ruler_matched_msg:
+                    logger.info(
+                        f"Ruler: msg:{self.msg}, match rule:{rule}, new msg:{new_msg}"
+                    )
                 return new_msg
 
         except StopIteration:
@@ -120,20 +123,25 @@ class Ruler:
             msg = await self.q.get()
             logger.debug(f"got Msg: {msg}")
 
-            async for new_msg in RulerAsyncProcessor(rules=self.config.rules, msg=msg):
+            matched = False
+            async for new_msg in RulerAsyncProcessor(config=self.config, msg=msg):
                 rule = new_msg.matched_rules[-1]
                 sender_q = self.sender_q_mapping.get(rule.sender_name)
                 if sender_q is None:
                     raise
 
                 await sender_q.put(new_msg)
+                matched = True
+
+            if not matched and self.config.logging.log_ruler_droped_msg:
+                logger.info(f"msg:{msg} dropped, no matched rule")
 
 
 async def rule_tester(config: Config, msg: Msg) -> None:
     print("Input Msg: ", end="")
     pprint(msg)
 
-    async for new_msg in RulerAsyncProcessor(rules=config.rules, msg=msg):
+    async for new_msg in RulerAsyncProcessor(config=config, msg=msg):
         rule = new_msg.matched_rules[-1]
         print("Matche Rule ---")
         print(f"RuleID:#{rule.name}, ", end="")
