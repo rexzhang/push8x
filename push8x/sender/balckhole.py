@@ -1,4 +1,5 @@
 from loguru import logger
+from rich import inspect
 from rich.pretty import pprint
 
 from ..worker import worker_guardian
@@ -12,3 +13,4 @@ class SenderBlackhole(SenderAbc):
             msg = await self.q.get()
             logger.info("sender.blackhole got msg:")
             pprint(msg)
+            inspect(msg.receiver_smtpd_session)

@@ -1,6 +1,7 @@
 import asyncio
 import json
 import re
+import ssl
 from asyncio import Queue
 from http import HTTPStatus
 from typing import Any, TypedDict
@@ -8,7 +9,7 @@ from typing import Any, TypedDict
 import mailparser
 from aiosmtpd.proxy_protocol import ProxyData
 from aiosmtpd.smtp import SMTP as SMTPAbc
-from aiosmtpd.smtp import Envelope, Session
+from aiosmtpd.smtp import AuthResult, Envelope, LoginPassword, Session
 from loguru import logger
 from rich import inspect
 from rich.pretty import pprint
@@ -26,10 +27,12 @@ from ..constans import (
 from ..worker import worker_guardian
 from .common import ReceiverAbc
 
-# SMTPd for http auth ---
+# ext_* are used to store additional data related to the SMTPd server
+
+# SMTPd's auth function for behind proxy's HTTP auth ---
 
 
-class ReceiverSmtpdAuth(AuthAbc):
+class ReceiverSmtpdHttpAuth(AuthAbc):
     def __init__(
         self, config: Config, accounts: list[Any], smtpd_host: str, smtpd_port: int
     ) -> None:
@@ -84,7 +87,41 @@ class ReceiverSmtpdAuth(AuthAbc):
             return self.response_failed
 
 
-# for SMTP port listen
+# SMTPd's auth function for direct SMTP AUTH
+
+
+class SmtpdAuthenticator:
+    """Authenticator for aiosmtpd SMTP AUTH."""
+
+    def __init__(self, auth: AuthAbc):
+        self.auth = auth
+
+    def __call__(
+        self, server, session, envelope, mechanism: str, auth_data
+    ) -> AuthResult:
+        fail_nothandled = AuthResult(success=False, handled=False)
+        if mechanism not in ("LOGIN", "PLAIN"):
+            return fail_nothandled
+        if not isinstance(auth_data, LoginPassword):
+            return fail_nothandled
+
+        success, ext = self.auth.check(auth_data.login, auth_data.password)
+        if success:
+            # Store auth info in session for later use
+            setattr(
+                session,
+                "ext_auth_data",
+                {
+                    **ext,
+                    "username": auth_data.login.decode(),
+                },
+            )
+            return AuthResult(success=True, handled=True)
+
+        return AuthResult(success=False, handled=True)
+
+
+# SMTPd service ---
 
 
 class ExtXclient(TypedDict):
@@ -95,16 +132,15 @@ class ExtXclient(TypedDict):
 
 class SMTP(SMTPAbc):
 
-    def __init__(self, support_proxy_protocol: bool, *args, **kwargs):
-        if support_proxy_protocol:
+    def __init__(self, behind_proxy: bool, *args, **kwargs):
+        if behind_proxy:
             # behind proxy, enable proxy protocol support
-            logger.info("receiver.smtpd: `support proxy protocol` has been enabled")
+            logger.info("receiver.smtpd: `proxy protocol support` has been enabled")
             kwargs.setdefault("proxy_protocol_timeout", 3.0)
 
         super().__init__(*args, **kwargs)
 
     async def smtp_XCLIENT(self, arg):
-        print(1111)
         # "ADDR=1.2.3.4 LOGIN=user@me.com"
         ext_xclient: ExtXclient = dict(
             item.split("=", 1) for item in arg.split() if "=" in item
@@ -114,7 +150,7 @@ class SMTP(SMTPAbc):
         await self.push("250 OK")
 
 
-class SmtpdHandler:
+class ReceiverSmtpdHandler:
     sender_name: str
     q: Queue[Msg]
 
@@ -184,18 +220,33 @@ class SmtpdHandler:
             else:
                 login_str = ext_xclient.get("LOGIN", None)
                 if login_str is None:
-                    raise
+                    raise Exception("Codebase error: no LOGIN in ext_xclient")
+
                 login_info: dict[str, Any] = json.loads(login_str)
                 account_from_value = login_info.get("from_value")
                 if account_from_value and account_from_value != from_value:
                     return f"550 account from_value: {account_from_value} is not equal email from: {from_value}"
 
                 account_mark = login_info.get("mark", "")
-        else:
-            # direct
-            # TODO, support without nginx
-            account_mark = ""
 
+        else:
+            # direct connection
+            ext_auth_data: dict[str, Any] | None = getattr(
+                session, "ext_auth_data", None
+            )
+
+            if ext_auth_data is None:
+                # No authentication
+                account_mark = ""
+
+            else:
+                # Authenticated via SMTP AUTH
+                account_from_value = ext_auth_data.get("from_value")
+                if account_from_value and account_from_value != from_value:
+                    return f"550 account from_value: {account_from_value} is not equal email from: {from_value}"
+                account_mark = ext_auth_data.get("mark", "")
+
+        # check from_value/to_value
         if self.config_receiver_smtpd.from_value_regex:
             if (
                 re.match(self.config_receiver_smtpd.from_value_regex, from_value)
@@ -238,22 +289,46 @@ class ReceiverSmtpd(ReceiverAbc):
         super().__init__(config, ruler_q)
 
         self.q = Queue()
+        # Create authenticator if accounts are configured
+        accounts = self.config.receiver.smtpd.accounts
+        if accounts:
+            self.smtpd_auth = AuthAbc(accounts)
+            self.authenticator = SmtpdAuthenticator(self.smtpd_auth)
+        else:
+            self.smtpd_auth = None
+            self.authenticator = None
+
+        # Create TLS context if cert/key are configured
+        self.tls_context: ssl.SSLContext | None = None
+        certfile = self.config.receiver.smtpd.starttls_certfile
+        keyfile = self.config.receiver.smtpd.starttls_keyfile
+        if certfile and keyfile:
+            self.tls_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+            self.tls_context.load_cert_chain(certfile, keyfile)
+            logger.info(f"receiver.smtpd: STARTTLS enabled with cert={certfile}")
 
     @worker_guardian(name="recevier:smtdp:listen")
     async def worker_listen(self):
         loop = asyncio.get_running_loop()
         server = await loop.create_server(
             lambda: SMTP(
-                handler=SmtpdHandler(config=self.config, process_q=self.q),
+                behind_proxy=self.config.receiver.smtpd.behind_proxy,
+                # from orginal aiosmtpd.smtp.SMTP ---
+                handler=ReceiverSmtpdHandler(config=self.config, process_q=self.q),
                 enable_SMTPUTF8=True,
-                support_proxy_protocol=self.config.receiver.smtpd.behind_proxy,
+                tls_context=self.tls_context,
+                auth_require_tls=self.tls_context is not None,
+                auth_required=self.authenticator is not None,
+                authenticator=self.authenticator,
             ),
             host=self.config.receiver.smtpd.bind.host,
             port=self.config.receiver.smtpd.bind.port,
         )
         async with server:
+            auth_info = "with AUTH" if self.authenticator else "without AUTH"
+            tls_info = "with STARTTLS" if self.tls_context else "without STARTTLS"
             logger.info(
-                f"Starting {self.type} server on {self.config.receiver.smtpd.bind.host}:{self.config.receiver.smtpd.bind.port}"
+                f"Starting {self.type} server on {self.config.receiver.smtpd.bind.host}:{self.config.receiver.smtpd.bind.port} ({auth_info}, {tls_info})"
             )
             await server.serve_forever()
 

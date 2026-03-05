@@ -11,7 +11,6 @@ apprise
 jinja2
 
 # config
-mashumaro
 dataclass-wizard[dotenv]
 
 # CLI

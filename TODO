@@ -14,10 +14,10 @@ WIP:
         ☐ 基于 nginx 的安全防护
             ✔ 通过 nginx email api 认证 @done(26-02-15 20:47)
             ✔ nginx ssl 部署支持 @done(26-02-17 16:38)
-            ☐ nginx startls  部署支持
             ☐ session.proxy_data 似乎不需要 ext_proxy_data ?
-        ☐ 正确的解析 带附件的邮件 @low
+        ✔ 正确的解析 带附件的邮件 @done(26-03-05 12:05)
         ✔ 直接在 smtpd 接口上支持认证 @done(26-03-02 23:01)
+        ✔ 支持 startls 部署 @done(26-03-05 12:05)
     ☐ sender.blackhole
         ✔ 完善为 debug 工具 @done(26-03-03 21:57)
     ☐ sender.webhook
@@ -41,4 +41,5 @@ WIP:
         ☐ task 全链路日志跟踪辅助
 
 backlog:
-    pass
+    ☐ 支持 python3.14+
+        ☐ aiosmtpd 兼容性问题 https://github.com/aio-libs/aiosmtpd/pull/556

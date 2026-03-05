@@ -105,11 +105,15 @@ class ReceiverSmtpd(ReceiverAbc):
     bind: Bind = field(
         default_factory=lambda: Bind(DEFAULT_SMTPD_BIND_HOST, DEFAULT_SMTPD_BIND_PORT)
     )
-    # --- support proxy protocol
+    # --- proxy protocol support
     behind_proxy: bool = False
     # announcement TODO: rename => report?
     host: str = DEFAULT_SMTPD_BIND_HOST
     port: int = DEFAULT_SMTPD_BIND_PORT
+
+    # --- STARTTLS support
+    starttls_certfile: str | None = None  # path to cert file
+    starttls_keyfile: str | None = None  # path to key file
 
     # sender control
     accounts: list[ReceiverSmtpdAccount] = field(default_factory=list)

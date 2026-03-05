@@ -6,7 +6,7 @@ from loguru import logger
 
 from .config import Config
 from .constans import HttpServerResponse, Msg, MsgContentType, MsgQueue, ReceiverType
-from .receiver.smtpd import ReceiverSmtpdAuth
+from .receiver.smtpd import ReceiverSmtpdHttpAuth
 from .receiver.webhook import ReceiverWebhookAuth
 from .worker import worker_guardian
 
@@ -21,7 +21,7 @@ class HttpServerProtocol(asyncio.Protocol):
         self,
         webhook_auth: ReceiverWebhookAuth,
         webhook_q: MsgQueue,
-        smtpd_auth: ReceiverSmtpdAuth,
+        smtpd_auth: ReceiverSmtpdHttpAuth,
     ):
         self.webhook_auth = webhook_auth
         self.webhook_q = webhook_q
@@ -116,7 +116,7 @@ class HttpServerProtocol(asyncio.Protocol):
 class HttpServer:
     config: Config
     webhook_auth: ReceiverWebhookAuth
-    smtpd_auth: ReceiverSmtpdAuth
+    smtpd_auth: ReceiverSmtpdHttpAuth
 
     def __init__(self, config: Config, webhook_q: MsgQueue):
         self.config = config
@@ -124,7 +124,7 @@ class HttpServer:
         self.webhook_auth = ReceiverWebhookAuth(config.receiver.webhook.endpoints)
         self.webhook_q = webhook_q
 
-        self.smtpd_account = ReceiverSmtpdAuth(
+        self.smtpd_account = ReceiverSmtpdHttpAuth(
             config=self.config,
             accounts=config.receiver.smtpd.accounts,
             smtpd_host=config.receiver.smtpd.host,
