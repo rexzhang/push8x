@@ -2,8 +2,8 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
+import rich
 import typer
-from rich.pretty import pprint
 
 from .config import reinit_config
 from .constans import (
@@ -16,10 +16,12 @@ from .constans import (
     MsgContentType,
     ReceiverType,
 )
-from .ruler import rule_tester
+from .ruler import check_rules
 from .serve import main as serve_main
 
 app = typer.Typer()
+check_app = typer.Typer()
+app.add_typer(check_app, name="check")
 
 
 class State:
@@ -70,17 +72,17 @@ def serve(
     serve_main(config)
 
 
-@app.command()
-def configcheck() -> Any:
+@check_app.command("config")
+def cli_check_config() -> Any:
     """Config check tool."""
     reinit_config(state.config_filename)
     from .config import config
 
-    pprint(config)
+    rich.print(config)
 
 
-@app.command()
-def ruletest(
+@check_app.command("rules")
+def cli_check_rules(
     from_name: str = typer.Option("Sender Man"),
     from_value: str = typer.Option("sender@example.com"),
     to_name: str = typer.Option("Receiver Man"),
@@ -90,15 +92,14 @@ def ruletest(
     content_format: MsgContentType = typer.Option(MsgContentType.PLAIN),
     receiver: ReceiverType = typer.Option(ReceiverType.SMTPD),
     mark: str = typer.Option(""),
-) -> Any:
-    """Rules test tool."""
+) -> None:
     reinit_config(state.config_filename)
     from .config import config
 
     msg = Msg(
         receiver=receiver,
         receiver_smtpd_session=None,
-        matched_rules=list(),
+        ruler_matched_rules=list(),
         from_name=from_name,
         from_value=from_value,
         to_name=to_name,
@@ -108,7 +109,10 @@ def ruletest(
         content_format=content_format,
         attachments=list(),
         ext=dict(),
-        mark=mark,
+        receiver_mark=mark,
     )
 
-    asyncio.run(rule_tester(config, msg))
+    result = asyncio.run(check_rules(config, msg))
+    rich.print("Input Msg:", msg)
+    for new_msg in result:
+        rich.print("Output Msg:", new_msg)

@@ -1,0 +1,14 @@
+# Simple fallback config - first rule has specific match, second rule catches all
+[[senders]]
+type = "smtp"
+host = "smtp.example.com"
+port = 465
+
+[[rules]]
+match_to_value = "*@example.com"
+sender_name = "apprise"
+new_to_value = "pover://user@token"
+
+[[rules]]
+sender_name = "smtp"
+new_to_value = "archive@example.com"

@@ -1,0 +1,10 @@
+# Template rendering config
+[[senders]]
+type = "smtp"
+host = "smtp.example.com"
+port = 465
+
+[[rules]]
+sender_name = "smtp"
+new_title = "RE: {{ msg.title }}"
+new_content = "From: {{ msg.from_name }}\nOriginal: {{ msg.content }}"

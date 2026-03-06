@@ -42,7 +42,7 @@ password = "password"
 [[rules]]
 # 匹配 mark 为 mark1 的消息
 # 也可以理解为匹配 username 为 user4@example.com 来的消息
-match_mark = "mark1"
+match_receiver_mark = "mark1"
 
 sender_name = "smtp"
 

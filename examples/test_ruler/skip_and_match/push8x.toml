@@ -1,0 +1,16 @@
+# Skip and match logic config
+[[senders]]
+type = "smtp"
+host = "smtp.example.com"
+port = 465
+
+[[rules]]
+skip_receiver_mark = "spam"
+sender_name = "smtp"
+
+[[rules]]
+match_receiver_mark = "important"
+sender_name = "apprise"
+
+[[rules]]
+sender_name = "blackhole"

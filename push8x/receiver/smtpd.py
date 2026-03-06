@@ -223,11 +223,11 @@ class ReceiverSmtpdHandler:
                     raise Exception("Codebase error: no LOGIN in ext_xclient")
 
                 login_info: dict[str, Any] = json.loads(login_str)
-                account_from_value = login_info.get("from_value")
-                if account_from_value and account_from_value != from_value:
-                    return f"550 account from_value: {account_from_value} is not equal email from: {from_value}"
+                receiver_from_value = login_info.get("from_value")
+                if receiver_from_value and receiver_from_value != from_value:
+                    return f"550 receiver.smtpd.accounts from_value: {receiver_from_value} is not equal email from: {from_value}"
 
-                account_mark = login_info.get("mark", "")
+                receiver_mark = login_info.get("receiver_mark", "")
 
         else:
             # direct connection
@@ -237,14 +237,14 @@ class ReceiverSmtpdHandler:
 
             if ext_auth_data is None:
                 # No authentication
-                account_mark = ""
+                receiver_mark = ""
 
             else:
                 # Authenticated via SMTP AUTH
-                account_from_value = ext_auth_data.get("from_value")
-                if account_from_value and account_from_value != from_value:
-                    return f"550 account from_value: {account_from_value} is not equal email from: {from_value}"
-                account_mark = ext_auth_data.get("mark", "")
+                receiver_from_value = ext_auth_data.get("from_value")
+                if receiver_from_value and receiver_from_value != from_value:
+                    return f"550 receiver.smtpd.accounts from_value: {receiver_from_value} is not equal email from: {from_value}"
+                receiver_mark = ext_auth_data.get("receiver_mark", "")
 
         # check from_value/to_value
         if self.config_receiver_smtpd.from_value_regex:
@@ -261,7 +261,7 @@ class ReceiverSmtpdHandler:
         msg = Msg(
             receiver=ReceiverType.SMTPD,
             receiver_smtpd_session=session,
-            matched_rules=list(),
+            ruler_matched_rules=list(),
             from_name=from_name,
             from_value=from_value,
             to_name=to_name,
@@ -271,7 +271,7 @@ class ReceiverSmtpdHandler:
             content_format=content_format,
             attachments=attachments,
             ext=dict(),
-            mark=account_mark,
+            receiver_mark=receiver_mark,
         )
 
         await self.q.put(msg)

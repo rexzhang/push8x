@@ -1,0 +1,13 @@
+# ignore_if_matched_other_rule config
+[[senders]]
+type = "smtp"
+host = "smtp.example.com"
+port = 465
+
+[[rules]]
+match_receiver_mark = "important"
+sender_name = "smtp"
+
+[[rules]]
+ignore_if_matched_other_rule = true
+sender_name = "blackhole"

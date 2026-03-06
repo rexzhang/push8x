@@ -1,0 +1,13 @@
+# Match receiver config
+[[senders]]
+type = "smtp"
+host = "smtp.example.com"
+port = 465
+
+[[rules]]
+match_receiver = "smtpd"
+sender_name = "smtp"
+
+[[rules]]
+match_receiver = "webhook"
+sender_name = "apprise"

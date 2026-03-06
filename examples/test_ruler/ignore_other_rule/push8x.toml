@@ -1,0 +1,13 @@
+# ignore_other_rule_if_matched config
+[[senders]]
+type = "smtp"
+host = "smtp.example.com"
+port = 465
+
+[[rules]]
+match_receiver_mark = "priority"
+ignore_other_rule_if_matched = true
+sender_name = "apprise"
+
+[[rules]]
+sender_name = "smtp"

@@ -1,0 +1,53 @@
+{
+  "description": "匹配 priority 标记后，ignore_other_rule_if_matched 阻止后续规则",
+  "input_msg": {
+    "receiver_mark": "priority"
+  },
+  "output_result": [
+    [
+      {
+        "from_name": "Sender",
+        "from_value": "sender@example.com",
+        "to_name": "Recipient",
+        "to_value": "recipient@example.com",
+        "title": "Test Subject",
+        "content": "Test content",
+        "content_format": "plain",
+        "attachments": [],
+        "ext": {},
+        "receiver": "smtpd",
+        "receiver_mark": "priority",
+        "ruler_matched_rules": [
+          {
+            "sender_name": "apprise",
+            "enable": true,
+            "name": "R001",
+            "ignore_if_matched_other_rule": false,
+            "skip_receiver": null,
+            "skip_receiver_mark": null,
+            "skip_from_name": null,
+            "skip_from_value": null,
+            "skip_to_name": null,
+            "skip_to_value": null,
+            "skip_title": null,
+            "match_receiver": null,
+            "match_receiver_mark": "priority",
+            "match_from_name": null,
+            "match_from_value": null,
+            "match_to_name": null,
+            "match_to_value": null,
+            "match_title": null,
+            "ignore_other_rule_if_matched": true,
+            "new_from_name": null,
+            "new_from_value": null,
+            "new_to_name": null,
+            "new_to_value": null,
+            "new_title": null,
+            "new_content": null
+          }
+        ]
+      },
+      null
+    ]
+  ]
+}

@@ -223,6 +223,7 @@ class Config(JSONPyWizard):
 
         # rules ---
         for index in range(len(self.rules)):
+            # generate rule name if not set
             if self.rules[index].name == "":
                 self.rules[index].name = f"R{index+1:03d}"
 

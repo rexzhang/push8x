@@ -1,0 +1,12 @@
+# Disabled rule config
+[[senders]]
+type = "smtp"
+host = "smtp.example.com"
+port = 465
+
+[[rules]]
+enable = false
+sender_name = "apprise"
+
+[[rules]]
+sender_name = "smtp"

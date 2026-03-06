@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from asyncio import Queue
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from enum import Enum
 from http import HTTPStatus
 from typing import Any, TypeAlias
@@ -64,8 +64,7 @@ class Rule:
     # - None is mean ignore
     # - match ANYONE mean skip all
     skip_receiver: ReceiverType | None = None
-
-    skip_mark: str | None = None
+    skip_receiver_mark: str | None = None
 
     skip_from_name: str | None = None
     skip_from_value: str | None = None
@@ -78,8 +77,7 @@ class Rule:
     # - None is mean ignore/ANY
     # - ONLY match ALL mean match
     match_receiver: ReceiverType | None = None
-
-    match_mark: str | None = None
+    match_receiver_mark: str | None = None
 
     match_from_name: str | None = None
     match_from_value: str | None = None
@@ -100,8 +98,22 @@ class Rule:
     new_content: str | None = None
 
 
-RULS_SKIP_KEYS = ("mark", "from_name", "from_value", "to_name", "to_value", "title")
-RULE_MATCH_KEYS = ("mark", "from_name", "from_value", "to_name", "to_value", "title")
+RULS_SKIP_KEYS = (
+    "receiver_mark",
+    "from_name",
+    "from_value",
+    "to_name",
+    "to_value",
+    "title",
+)
+RULE_MATCH_KEYS = (
+    "receiver_mark",
+    "from_name",
+    "from_value",
+    "to_name",
+    "to_value",
+    "title",
+)
 RULE_NEW_KEYS = ("from_name", "from_value", "to_name", "to_value", "title", "content")
 
 
@@ -128,13 +140,8 @@ class MsgContentType(Enum):
 
 
 @dataclass(slots=True)
-class Msg:
-    # control info
-    receiver: ReceiverType
-    receiver_smtpd_session: AiosmtpdSession | None
-    matched_rules: list[Rule]
-
-    # message(notification) info
+class MsgBaseInfo:
+    # message base info
     from_name: str
     from_value: str
     to_name: str
@@ -145,9 +152,25 @@ class Msg:
     content_format: MsgContentType
     attachments: list[dict[str, Any]]
 
-    # ext info
+    # message ext info
     ext: dict[str, Any]
-    mark: str
+
+
+MSG_BASE_INFO_KEYS = [f.name for f in fields(MsgBaseInfo)]
+
+
+@dataclass(slots=True)
+class Msg(MsgBaseInfo):
+    # receiver
+    receiver: ReceiverType
+    receiver_smtpd_session: AiosmtpdSession | None
+    receiver_mark: str
+
+    # ruler
+    ruler_matched_rules: list[Rule]
+
+    # sender
+    # - ruler_matched_rules's Rule include sender_name
 
 
 MsgQueue: TypeAlias = Queue[Msg]

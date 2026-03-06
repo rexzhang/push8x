@@ -1,30 +1,33 @@
 import fnmatch
+from copy import copy, deepcopy
 
 from loguru import logger
-from rich.pretty import pprint
 
 from .config import Config
 from .constans import (
+    MSG_BASE_INFO_KEYS,
     RULE_MATCH_KEYS,
     RULE_NEW_KEYS,
     RULS_SKIP_KEYS,
     Msg,
     MsgQueue,
     Rule,
-    SenderQueueMapping,
 )
+from .sender import Sender, SenderMapping
 from .template import MsgTemplate
 from .worker import worker_guardian
 
 
-class RulerAsyncProcessor:
+class RulerAsyncMatcher:
 
-    def __init__(self, config: Config, msg: Msg) -> None:
-        self.logging = config.logging
-
+    def __init__(self, config: Config, msg: Msg, sender_mapping: SenderMapping) -> None:
+        self.config_logging = config.logging
         self.rules = iter(config.rules)
+
         self.msg = msg
         self.msg_template = MsgTemplate()
+
+        self.sender_mapping = sender_mapping
 
         self.matched_rules: list[Rule] = list()
         self.done = False
@@ -32,7 +35,7 @@ class RulerAsyncProcessor:
     def __aiter__(self):
         return self
 
-    async def __anext__(self):
+    async def __anext__(self) -> tuple[Msg, Sender | None]:
         try:
             while True:
                 if self.done:
@@ -51,18 +54,21 @@ class RulerAsyncProcessor:
                 if not self._match_logic(rule):
                     continue
 
+                # make new_msg
                 self.matched_rules.append(rule)
                 new_msg = self._convert_msg_context(rule)
-                new_msg.matched_rules = self.matched_rules
+                new_msg.ruler_matched_rules = deepcopy(self.matched_rules)
+                # get sender
+                sender = self.sender_mapping.get(rule.sender_name)
 
                 if rule.ignore_other_rule_if_matched:
                     self.done = True
 
-                if self.logging.log_ruler_matched_msg:
+                if self.config_logging.log_ruler_matched_msg:
                     logger.info(
                         f"Ruler: msg:{self.msg}, match rule:{rule}, new msg:{new_msg}"
                     )
-                return new_msg
+                return new_msg, sender
 
         except StopIteration:
             pass
@@ -94,8 +100,12 @@ class RulerAsyncProcessor:
         return True
 
     def _convert_msg_context(self, rule: Rule) -> Msg:
-        new_msg = self.msg  # TODO: deepcopy?
+        # copy Msg object
+        new_msg = copy(self.msg)
+        for k in MSG_BASE_INFO_KEYS:
+            setattr(new_msg, k, deepcopy(getattr(self.msg, k)))
 
+        # render new_msg
         for k in RULE_NEW_KEYS:
             new_x = getattr(rule, f"new_{k}")
             if new_x is not None:
@@ -105,16 +115,12 @@ class RulerAsyncProcessor:
 
 
 class Ruler:
-    config: Config
-    q: MsgQueue
-    sender_q_mapping: SenderQueueMapping
-
     def __init__(
-        self, config: Config, q: MsgQueue, sender_q_mapping: SenderQueueMapping
+        self, config: Config, q: MsgQueue, sender_mapping: SenderMapping
     ) -> None:
         self.config = config
         self.q = q
-        self.sender_q_mapping = sender_q_mapping
+        self.sender_mapping = sender_mapping
 
     @worker_guardian(name="ruler")
     async def worker(self):
@@ -124,27 +130,24 @@ class Ruler:
             logger.debug(f"got Msg: {msg}")
 
             matched = False
-            async for new_msg in RulerAsyncProcessor(config=self.config, msg=msg):
-                rule = new_msg.matched_rules[-1]
-                sender_q = self.sender_q_mapping.get(rule.sender_name)
-                if sender_q is None:
+            async for new_msg, sender in RulerAsyncMatcher(
+                config=self.config, msg=msg, sender_mapping=self.sender_mapping
+            ):
+                if sender is None:
                     raise Exception("Codebase error: sender_q is None")
 
-                await sender_q.put(new_msg)
+                await sender.q.put(new_msg)
                 matched = True
 
             if not matched and self.config.logging.log_ruler_droped_msg:
                 logger.info(f"msg:{msg} dropped, no matched rule")
 
 
-async def rule_tester(config: Config, msg: Msg) -> None:
-    print("Input Msg: ", end="")
-    pprint(msg)
+async def check_rules(config: Config, msg: Msg) -> list[tuple[Msg, Sender | None]]:
+    result = list()
+    async for new_msg, sender in RulerAsyncMatcher(
+        config=config, msg=msg, sender_mapping=dict()
+    ):
+        result.append((new_msg, sender))
 
-    async for new_msg in RulerAsyncProcessor(config=config, msg=msg):
-        rule = new_msg.matched_rules[-1]
-        print("Matche Rule ---")
-        print(f"RuleID:#{rule.name}, ", end="")
-        pprint(rule)
-        print("Ouput Msg: ", end="")
-        pprint(new_msg)
+    return result

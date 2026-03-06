@@ -463,7 +463,7 @@ Content-Type: text/html
         sample_session.ext_auth_data = {
             "username": "user1@example.com",
             "from_value": "sender@example.com",
-            "mark": "testmark",
+            "receiver_mark": "testmark",
         }
 
         result = await handler.handle_DATA(
@@ -475,7 +475,7 @@ Content-Type: text/html
         assert result == "250 OK"
 
         msg = handler.q.get_nowait()
-        assert msg.mark == "testmark"
+        assert msg.receiver_mark == "testmark"
 
     @pytest.mark.asyncio
     async def test_handle_data_from_value_mismatch(
@@ -486,7 +486,7 @@ Content-Type: text/html
         sample_session.ext_auth_data = {
             "username": "user1@example.com",
             "from_value": "different@example.com",  # Different from envelope
-            "mark": "",
+            "receiver_mark": "",
         }
 
         result = await handler.handle_DATA(
@@ -798,7 +798,7 @@ Body
         # Set XCLIENT data with LOGIN info
         login_info = {
             "from_value": "sender@example.com",
-            "mark": "proxy_mark",
+            "receiver_mark": "proxy_mark",
         }
         session.ext_xclient = {
             "ADDR": "192.168.1.100",
@@ -814,7 +814,7 @@ Body
         assert result == "250 OK"
 
         msg = handler.q.get_nowait()
-        assert msg.mark == "proxy_mark"
+        assert msg.receiver_mark == "proxy_mark"
 
     @pytest.mark.asyncio
     async def test_handle_data_behind_proxy_from_value_mismatch(
@@ -840,7 +840,7 @@ Body
         # Set XCLIENT with different from_value
         login_info = {
             "from_value": "different@example.com",
-            "mark": "",
+            "receiver_mark": "",
         }
         session.ext_xclient = {
             "ADDR": "192.168.1.100",
@@ -879,7 +879,7 @@ Body
         session = mocker.MagicMock()
         # No from_value in login_info - should not check
         login_info = {
-            "mark": "my_mark",
+            "receiver_mark": "my_mark",
         }
         session.ext_xclient = {
             "ADDR": "192.168.1.100",
@@ -895,7 +895,7 @@ Body
         assert result == "250 OK"
 
         msg = handler.q.get_nowait()
-        assert msg.mark == "my_mark"
+        assert msg.receiver_mark == "my_mark"
 
 
 # --- Tests for ReceiverSmtpd ---
@@ -1025,7 +1025,7 @@ class TestIntegration:
             Msg(
                 receiver=ReceiverType.SMTPD,
                 receiver_smtpd_session=mocker.MagicMock(),
-                matched_rules=[],
+                ruler_matched_rules=[],
                 from_name="Sender",
                 from_value="sender@example.com",
                 to_name="Recipient",
@@ -1035,7 +1035,7 @@ class TestIntegration:
                 content_format=MsgContentType.PLAIN,
                 attachments=[],
                 ext={},
-                mark="",
+                receiver_mark="",
             )
         )
 

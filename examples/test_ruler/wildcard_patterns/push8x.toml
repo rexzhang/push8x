@@ -1,0 +1,13 @@
+# Wildcard patterns config
+[[senders]]
+type = "smtp"
+host = "smtp.example.com"
+port = 465
+
+[[rules]]
+match_from_value = "*@company.com"
+match_title = "ALERT*"
+sender_name = "apprise"
+
+[[rules]]
+sender_name = "blackhole"

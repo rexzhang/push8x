@@ -1,0 +1,55 @@
+{
+  "description": "to_value 不匹配 *@example.com，只走 smtp 归档",
+  "input_msg": {
+    "to_value": "external@other.org",
+    "from_name": "External",
+    "title": "External Email"
+  },
+  "output_result": [
+    [
+      {
+        "from_name": "External",
+        "from_value": "sender@example.com",
+        "to_name": "Recipient",
+        "to_value": "archive@example.com",
+        "title": "External Email",
+        "content": "Test content",
+        "content_format": "plain",
+        "attachments": [],
+        "ext": {},
+        "receiver": "smtpd",
+        "receiver_mark": "",
+        "ruler_matched_rules": [
+          {
+            "sender_name": "smtp",
+            "enable": true,
+            "name": "R002",
+            "ignore_if_matched_other_rule": false,
+            "skip_receiver": null,
+            "skip_receiver_mark": null,
+            "skip_from_name": null,
+            "skip_from_value": null,
+            "skip_to_name": null,
+            "skip_to_value": null,
+            "skip_title": null,
+            "match_receiver": null,
+            "match_receiver_mark": null,
+            "match_from_name": null,
+            "match_from_value": null,
+            "match_to_name": null,
+            "match_to_value": null,
+            "match_title": null,
+            "ignore_other_rule_if_matched": false,
+            "new_from_name": null,
+            "new_from_value": null,
+            "new_to_name": null,
+            "new_to_value": "archive@example.com",
+            "new_title": null,
+            "new_content": null
+          }
+        ]
+      },
+      null
+    ]
+  ]
+}

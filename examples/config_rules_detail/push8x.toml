@@ -45,7 +45,7 @@ match_receiver = "smtpd"
 
 # 默认值: 空, 不检测
 # 允许的值: 通配符, 使用 fnmatch.fnmatch() 函数, 所以实际支持正则
-match_mark = "mark2"
+match_receiver_mark = "mark2"
 
 # 默认值: 空, 不检测
 # 允许的值: 通配符, 使用 fnmatch.fnmatch() 函数, 所以实际支持正则

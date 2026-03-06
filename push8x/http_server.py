@@ -97,7 +97,7 @@ class HttpServerProtocol(asyncio.Protocol):
             Msg(
                 receiver=ReceiverType.WEBHOOK,
                 receiver_smtpd_session=None,
-                matched_rules=list(),
+                ruler_matched_rules=list(),
                 from_name="",
                 from_value="aaaa",
                 to_name="",
@@ -107,7 +107,7 @@ class HttpServerProtocol(asyncio.Protocol):
                 content_format=MsgContentType.PLAIN,
                 attachments=list(),
                 ext=dict(),
-                mark="",
+                receiver_mark="",
             )
         )
         return HttpServerResponse(HTTPStatus.OK)

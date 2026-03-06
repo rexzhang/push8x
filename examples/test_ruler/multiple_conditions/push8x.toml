@@ -1,0 +1,14 @@
+# Multiple conditions (AND logic) config
+[[senders]]
+type = "smtp"
+host = "smtp.example.com"
+port = 465
+
+[[rules]]
+match_receiver_mark = "urgent"
+match_from_value = "*@admin.com"
+match_title = "*CRITICAL*"
+sender_name = "apprise"
+
+[[rules]]
+sender_name = "smtp"

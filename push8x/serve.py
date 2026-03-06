@@ -6,53 +6,23 @@ from collections.abc import Coroutine
 from loguru import logger
 
 from .config import Config
-from .constans import MsgQueue, SenderQueueMapping, SenderType
+from .constans import MsgQueue
 from .http_server import HttpServer
 from .receiver.smtpd import ReceiverSmtpd
 from .receiver.webhook import ReceiverWebhook
 from .ruler import Ruler
-from .sender.apprise import SenderApprise
-from .sender.balckhole import SenderBlackhole
-from .sender.smtp import SenderSmtp
-from .sender.webhook import SenderWebhook
+from .sender import get_sender_mapping
 from .worker import worker_supervisor
 
 
 async def server(config: Config):
     workers: list[Coroutine] = list()
 
-    # init senders
-    sender_q_mapping: SenderQueueMapping = dict()
-    sender_list = list()
-    for sender_config in config.senders:
-        sender_q = MsgQueue()
-
-        match sender_config.type:
-            case SenderType.BALCKHOLE:
-                sender_obj = SenderBlackhole(
-                    sender_config=sender_config, sender_q=sender_q
-                )
-            case SenderType.WEBHOOK:
-                sender_obj = SenderWebhook(
-                    sender_config=sender_config, sender_q=sender_q
-                )
-            case SenderType.SMTP:
-                sender_obj = SenderSmtp(sender_config=sender_config, sender_q=sender_q)
-            case SenderType.APPRISE:
-                sender_obj = SenderApprise(
-                    sender_config=sender_config, sender_q=sender_q
-                )
-
-            case _:
-                raise
-
-        sender_list.append(sender_obj)
-        workers.append(sender_obj.worker())
-        sender_q_mapping[sender_config.name] = sender_q
+    sender_mapping = get_sender_mapping(config=config, workers=workers)
 
     # init ruler
     ruler_q = MsgQueue()
-    ruler = Ruler(config=config, q=ruler_q, sender_q_mapping=sender_q_mapping)
+    ruler = Ruler(config=config, q=ruler_q, sender_mapping=sender_mapping)
     workers.append(ruler.worker())
 
     # init receivers
