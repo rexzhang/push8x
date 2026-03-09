@@ -6,6 +6,8 @@ from .common import ReceiverAbc
 
 
 class ReceiverWebhookAuth(AuthAbc):
+    receiver_type = ReceiverType.WEBHOOK
+
     @property
     def username_key(self) -> str:
         return "name"

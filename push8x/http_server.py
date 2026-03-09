@@ -116,7 +116,7 @@ class HttpServerProtocol(asyncio.Protocol):
 class HttpServer:
     config: Config
     webhook_auth: ReceiverWebhookAuth
-    smtpd_auth: ReceiverSmtpdHttpAuth
+    smtpd_http_auth: ReceiverSmtpdHttpAuth
 
     def __init__(self, config: Config, webhook_q: MsgQueue):
         self.config = config
@@ -124,25 +124,29 @@ class HttpServer:
         self.webhook_auth = ReceiverWebhookAuth(config.receiver.webhook.endpoints)
         self.webhook_q = webhook_q
 
-        self.smtpd_account = ReceiverSmtpdHttpAuth(
+        self.smtpd_http_auth = ReceiverSmtpdHttpAuth(
             config=self.config,
-            accounts=config.receiver.smtpd.accounts,
             smtpd_host=config.receiver.smtpd.host,
             smtpd_port=config.receiver.smtpd.port,
         )
 
-    @worker_guardian(name="server:http")
+    @worker_guardian(name="server:httpd")
     async def worker(self):
         loop = asyncio.get_running_loop()
         server = await loop.create_server(
             lambda: HttpServerProtocol(
-                self.webhook_auth, self.webhook_q, self.smtpd_account
+                self.webhook_auth, self.webhook_q, self.smtpd_http_auth
             ),
             self.config.http_server.bind.host,
             self.config.http_server.bind.port,
         )
-        logger.info(
-            f"HTTP Server started at http://{self.config.http_server.bind.host}:{self.config.http_server.bind.port}"
-        )
+        if self.webhook_auth.accounts:
+            logger.info(
+                f"{self.webhook_auth.receiver_type} enabled at: http://{self.config.http_server.bind.host}:{self.config.http_server.bind.port}/api/webhook, accounts: {len(self.webhook_auth.accounts)}"
+            )
+        if self.smtpd_http_auth.accounts:
+            logger.info(
+                f"{self.smtpd_http_auth.receiver_type} HTTP Auth enabled at: http://{self.config.http_server.bind.host}:{self.config.http_server.bind.port}/api/smtpd/auth, accounts: {len(self.smtpd_http_auth.accounts)}"
+            )
         async with server:
             await server.serve_forever()

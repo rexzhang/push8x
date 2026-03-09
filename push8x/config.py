@@ -115,10 +115,12 @@ class ReceiverSmtpd(ReceiverAbc):
     starttls_certfile: str | None = None  # path to cert file
     starttls_keyfile: str | None = None  # path to key file
 
-    # sender control
+    # sender control ---
+    # --- accounts
     accounts: list[ReceiverSmtpdAccount] = field(default_factory=list)
 
-    sender_ip_whitelist: set[str] = field(default_factory=set)
+    # --- sender control
+    sender_ip_whitelist: set[str] = field(default_factory=set)  # TODO
     from_value_regex: str | None = None
     to_value_regex: str | None = None
 
@@ -163,7 +165,7 @@ class SenderSmtp(ProviderAbc, JSONPyWizard):
     use_tls: bool = False
     start_tls: bool | None = None
 
-    default_email: str = "noreply@example.com"
+    default_email: str = "noreply@example.com"  # TODO:?
 
 
 @dataclass

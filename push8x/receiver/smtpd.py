@@ -8,8 +8,7 @@ from typing import Any, TypedDict
 
 import mailparser
 from aiosmtpd.proxy_protocol import ProxyData
-from aiosmtpd.smtp import SMTP as SMTPAbc
-from aiosmtpd.smtp import AuthResult, Envelope, LoginPassword, Session
+from aiosmtpd.smtp import SMTP, AuthResult, Envelope, LoginPassword, Session
 from loguru import logger
 from rich import inspect
 from rich.pretty import pprint
@@ -33,10 +32,10 @@ from .common import ReceiverAbc
 
 
 class ReceiverSmtpdHttpAuth(AuthAbc):
-    def __init__(
-        self, config: Config, accounts: list[Any], smtpd_host: str, smtpd_port: int
-    ) -> None:
-        super().__init__(accounts)
+    receiver_type = ReceiverType.SMTPD
+
+    def __init__(self, config: Config, smtpd_host: str, smtpd_port: int) -> None:
+        super().__init__(config.receiver.smtpd.accounts)
         self.config_receiver_smtpd = config.receiver.smtpd
 
         self.response_success_headers = [
@@ -90,11 +89,11 @@ class ReceiverSmtpdHttpAuth(AuthAbc):
 # SMTPd's auth function for direct SMTP AUTH
 
 
-class SmtpdAuthenticator:
+class ReceiverSmtpdAuthenticator:
     """Authenticator for aiosmtpd SMTP AUTH."""
 
-    def __init__(self, auth: AuthAbc):
-        self.auth = auth
+    def __init__(self, accounts: list[Any]):
+        self.auth = AuthAbc(accounts)
 
     def __call__(
         self, server, session, envelope, mechanism: str, auth_data
@@ -130,7 +129,7 @@ class ExtXclient(TypedDict):
     NAME: str
 
 
-class SMTP(SMTPAbc):
+class ReceiverSmtpdSMTP(SMTP):
 
     def __init__(self, behind_proxy: bool, *args, **kwargs):
         if behind_proxy:
@@ -160,7 +159,7 @@ class ReceiverSmtpdHandler:
 
     async def handle_PROXY(
         self,
-        server: SMTP,
+        server: ReceiverSmtpdSMTP,
         session: Session,
         envelope: Envelope,
         ext_proxy_data: ProxyData,
@@ -168,7 +167,9 @@ class ReceiverSmtpdHandler:
         setattr(session, "ext_proxy_data", ext_proxy_data)
         return "250 OK"
 
-    async def handle_DATA(self, server: SMTP, session: Session, envelope: Envelope):
+    async def handle_DATA(
+        self, server: ReceiverSmtpdSMTP, session: Session, envelope: Envelope
+    ):
         inspect(session)
 
         # parse mail
@@ -289,29 +290,32 @@ class ReceiverSmtpd(ReceiverAbc):
         super().__init__(config, ruler_q)
 
         self.q = Queue()
-        # Create authenticator if accounts are configured
-        accounts = self.config.receiver.smtpd.accounts
-        if accounts:
-            self.smtpd_auth = AuthAbc(accounts)
-            self.authenticator = SmtpdAuthenticator(self.smtpd_auth)
-        else:
-            self.smtpd_auth = None
-            self.authenticator = None
 
-        # Create TLS context if cert/key are configured
-        self.tls_context: ssl.SSLContext | None = None
-        certfile = self.config.receiver.smtpd.starttls_certfile
-        keyfile = self.config.receiver.smtpd.starttls_keyfile
-        if certfile and keyfile:
-            self.tls_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-            self.tls_context.load_cert_chain(certfile, keyfile)
-            logger.info(f"receiver.smtpd: STARTTLS enabled with cert={certfile}")
+        if config.receiver.smtpd.behind_proxy:
+            self.authenticator = None
+            self.tls_context = None
+
+        else:
+            # Create authenticator if accounts are configured
+            accounts = self.config.receiver.smtpd.accounts
+            self.authenticator = (
+                ReceiverSmtpdAuthenticator(accounts) if accounts else None
+            )
+
+            # Create TLS context if cert/key are configured
+            self.tls_context: ssl.SSLContext | None = None
+            certfile = self.config.receiver.smtpd.starttls_certfile
+            keyfile = self.config.receiver.smtpd.starttls_keyfile
+            if certfile and keyfile:
+                self.tls_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+                self.tls_context.load_cert_chain(certfile, keyfile)
+                logger.info(f"receiver.smtpd: STARTTLS enabled with cert={certfile}")
 
     @worker_guardian(name="recevier:smtdp:listen")
     async def worker_listen(self):
         loop = asyncio.get_running_loop()
         server = await loop.create_server(
-            lambda: SMTP(
+            lambda: ReceiverSmtpdSMTP(
                 behind_proxy=self.config.receiver.smtpd.behind_proxy,
                 # from orginal aiosmtpd.smtp.SMTP ---
                 handler=ReceiverSmtpdHandler(config=self.config, process_q=self.q),
@@ -325,10 +329,15 @@ class ReceiverSmtpd(ReceiverAbc):
             port=self.config.receiver.smtpd.bind.port,
         )
         async with server:
+            behind_proxy = (
+                "behind PROXY"
+                if self.config.receiver.smtpd.behind_proxy
+                else "not behind PROXY"
+            )
             auth_info = "with AUTH" if self.authenticator else "without AUTH"
             tls_info = "with STARTTLS" if self.tls_context else "without STARTTLS"
             logger.info(
-                f"Starting {self.type} server on {self.config.receiver.smtpd.bind.host}:{self.config.receiver.smtpd.bind.port} ({auth_info}, {tls_info})"
+                f"{self.type} listen on {self.config.receiver.smtpd.bind.host}:{self.config.receiver.smtpd.bind.port} ({behind_proxy}, {auth_info}, {tls_info})"
             )
             await server.serve_forever()
 

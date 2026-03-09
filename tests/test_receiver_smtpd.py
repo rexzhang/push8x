@@ -8,17 +8,14 @@ from pathlib import Path
 import pytest
 from aiosmtpd.smtp import AuthResult, LoginPassword
 
-from push8x.auth import AuthAbc
 from push8x.config import Bind, Config, ReceiverSmtpd, ReceiverSmtpdAccount
 from push8x.constans import Msg, MsgContentType, ReceiverType
-from push8x.receiver.smtpd import (
-    SMTP,
-)
 from push8x.receiver.smtpd import ReceiverSmtpd as ReceiverSmtpdClass
 from push8x.receiver.smtpd import (
+    ReceiverSmtpdAuthenticator,
     ReceiverSmtpdHandler,
     ReceiverSmtpdHttpAuth,
-    SmtpdAuthenticator,
+    ReceiverSmtpdSMTP,
 )
 
 # --- Fixtures ---
@@ -85,17 +82,15 @@ class TestSmtpdAuthenticator:
         accounts = [
             MockAccount(username="test@example.com", password="secret"),
         ]
-        auth = AuthAbc(accounts)
-        authenticator = SmtpdAuthenticator(auth)
-        assert authenticator.auth is auth
+        authenticator = ReceiverSmtpdAuthenticator(accounts)
+        assert authenticator.auth is not None
 
     def test_call_login_success(self, mocker):
         """Test successful LOGIN authentication."""
         accounts = [
             MockAccount(username="test@example.com", password="secret"),
         ]
-        auth = AuthAbc(accounts)
-        authenticator = SmtpdAuthenticator(auth)
+        authenticator = ReceiverSmtpdAuthenticator(accounts)
 
         session = mocker.MagicMock()
         auth_data = LoginPassword(login=b"test@example.com", password=b"secret")
@@ -117,8 +112,7 @@ class TestSmtpdAuthenticator:
         accounts = [
             MockAccount(username="test@example.com", password="secret"),
         ]
-        auth = AuthAbc(accounts)
-        authenticator = SmtpdAuthenticator(auth)
+        authenticator = ReceiverSmtpdAuthenticator(accounts)
 
         session = mocker.MagicMock()
         auth_data = LoginPassword(login=b"test@example.com", password=b"secret")
@@ -138,8 +132,7 @@ class TestSmtpdAuthenticator:
         accounts = [
             MockAccount(username="test@example.com", password="secret"),
         ]
-        auth = AuthAbc(accounts)
-        authenticator = SmtpdAuthenticator(auth)
+        authenticator = ReceiverSmtpdAuthenticator(accounts)
 
         session = mocker.MagicMock()
         auth_data = LoginPassword(login=b"test@example.com", password=b"wrongpassword")
@@ -159,8 +152,7 @@ class TestSmtpdAuthenticator:
         accounts = [
             MockAccount(username="test@example.com", password="secret"),
         ]
-        auth = AuthAbc(accounts)
-        authenticator = SmtpdAuthenticator(auth)
+        authenticator = ReceiverSmtpdAuthenticator(accounts)
 
         session = mocker.MagicMock()
         auth_data = LoginPassword(login=b"unknown@example.com", password=b"secret")
@@ -180,8 +172,7 @@ class TestSmtpdAuthenticator:
         accounts = [
             MockAccount(username="test@example.com", password="secret"),
         ]
-        auth = AuthAbc(accounts)
-        authenticator = SmtpdAuthenticator(auth)
+        authenticator = ReceiverSmtpdAuthenticator(accounts)
 
         session = mocker.MagicMock()
         auth_data = LoginPassword(login=b"test@example.com", password=b"secret")
@@ -201,8 +192,7 @@ class TestSmtpdAuthenticator:
         accounts = [
             MockAccount(username="test@example.com", password="secret"),
         ]
-        auth = AuthAbc(accounts)
-        authenticator = SmtpdAuthenticator(auth)
+        authenticator = ReceiverSmtpdAuthenticator(accounts)
 
         session = mocker.MagicMock()
 
@@ -226,8 +216,7 @@ class TestSmtpdAuthenticator:
                 mark="mymark",
             ),
         ]
-        auth = AuthAbc(accounts)
-        authenticator = SmtpdAuthenticator(auth)
+        authenticator = ReceiverSmtpdAuthenticator(accounts)
 
         session = mocker.MagicMock()
         auth_data = LoginPassword(login=b"test@example.com", password=b"secret")
@@ -253,12 +242,11 @@ class TestReceiverSmtpdHttpAuth:
 
     def test_init(self, mock_config):
         """Test ReceiverSmtpdHttpAuth initialization."""
-        accounts = [
+        mock_config.receiver.smtpd.accounts = [
             MockAccount(username="test@example.com", password="secret"),
         ]
         http_auth = ReceiverSmtpdHttpAuth(
             config=mock_config,
-            accounts=accounts,
             smtpd_host="127.0.0.1",
             smtpd_port=8025,
         )
@@ -268,12 +256,11 @@ class TestReceiverSmtpdHttpAuth:
 
     def test_check_headers_success(self, mock_config):
         """Test successful HTTP auth check."""
-        accounts = [
+        mock_config.receiver.smtpd.accounts = [
             MockAccount(username="test@example.com", password="secret"),
         ]
         http_auth = ReceiverSmtpdHttpAuth(
             config=mock_config,
-            accounts=accounts,
             smtpd_host="127.0.0.1",
             smtpd_port=8025,
         )
@@ -290,12 +277,11 @@ class TestReceiverSmtpdHttpAuth:
 
     def test_check_headers_wrong_password(self, mock_config):
         """Test HTTP auth check with wrong password."""
-        accounts = [
+        mock_config.receiver.smtpd.accounts = [
             MockAccount(username="test@example.com", password="secret"),
         ]
         http_auth = ReceiverSmtpdHttpAuth(
             config=mock_config,
-            accounts=accounts,
             smtpd_host="127.0.0.1",
             smtpd_port=8025,
         )
@@ -313,13 +299,11 @@ class TestReceiverSmtpdHttpAuth:
     def test_check_headers_ip_blocked(self, mock_config):
         """Test HTTP auth check with blocked IP."""
         mock_config.receiver.smtpd.sender_ip_whitelist = {"10.0.0.1"}
-
-        accounts = [
+        mock_config.receiver.smtpd.accounts = [
             MockAccount(username="test@example.com", password="secret"),
         ]
         http_auth = ReceiverSmtpdHttpAuth(
             config=mock_config,
-            accounts=accounts,
             smtpd_host="127.0.0.1",
             smtpd_port=8025,
         )
@@ -337,13 +321,11 @@ class TestReceiverSmtpdHttpAuth:
     def test_check_headers_ip_in_whitelist(self, mock_config):
         """Test HTTP auth check with IP in whitelist."""
         mock_config.receiver.smtpd.sender_ip_whitelist = {"192.168.1.1"}
-
-        accounts = [
+        mock_config.receiver.smtpd.accounts = [
             MockAccount(username="test@example.com", password="secret"),
         ]
         http_auth = ReceiverSmtpdHttpAuth(
             config=mock_config,
-            accounts=accounts,
             smtpd_host="127.0.0.1",
             smtpd_port=8025,
         )
@@ -360,12 +342,11 @@ class TestReceiverSmtpdHttpAuth:
 
     def test_check_headers_missing_credentials(self, mock_config):
         """Test HTTP auth check with missing credentials."""
-        accounts = [
+        mock_config.receiver.smtpd.accounts = [
             MockAccount(username="test@example.com", password="secret"),
         ]
         http_auth = ReceiverSmtpdHttpAuth(
             config=mock_config,
-            accounts=accounts,
             smtpd_host="127.0.0.1",
             smtpd_port=8025,
         )
@@ -912,7 +893,6 @@ class TestReceiverSmtpd:
         receiver = ReceiverSmtpdClass(config=mock_config, ruler_q=ruler_q)
 
         assert receiver.authenticator is None
-        assert receiver.smtpd_auth is None
         assert receiver.tls_context is None
 
     def test_init_with_auth(self, mock_config, mock_accounts):
@@ -923,7 +903,6 @@ class TestReceiverSmtpd:
         receiver = ReceiverSmtpdClass(config=mock_config, ruler_q=ruler_q)
 
         assert receiver.authenticator is not None
-        assert receiver.smtpd_auth is not None
 
     def test_init_with_starttls(self, mock_config):
         """Test initialization with STARTTLS."""
@@ -993,14 +972,14 @@ class TestSMTPClass:
     def test_init_without_proxy(self, mocker):
         """Test SMTP initialization without proxy protocol."""
         handler = mocker.MagicMock()
-        smtp = SMTP(behind_proxy=False, handler=handler)
+        smtp = ReceiverSmtpdSMTP(behind_proxy=False, handler=handler)
         # Should not have _proxy_timeout set
         assert smtp._proxy_timeout is None
 
     def test_init_with_proxy(self, mocker):
         """Test SMTP initialization with proxy protocol."""
         handler = mocker.MagicMock()
-        smtp = SMTP(behind_proxy=True, handler=handler)
+        smtp = ReceiverSmtpdSMTP(behind_proxy=True, handler=handler)
         # Should have _proxy_timeout set
         assert smtp._proxy_timeout == 3.0
 
@@ -1045,8 +1024,7 @@ class TestIntegration:
     @pytest.mark.asyncio
     async def test_authenticator_integration(self, mock_accounts, mocker):
         """Test authenticator integration with accounts."""
-        auth = AuthAbc(mock_accounts)
-        authenticator = SmtpdAuthenticator(auth)
+        authenticator = ReceiverSmtpdAuthenticator(mock_accounts)
 
         # Test with valid credentials
         session = mocker.MagicMock()

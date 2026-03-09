@@ -35,6 +35,7 @@ class AuthDataGenerator:
 
 class AuthAbc:
     # TODO: load password with hash:xxxx
+    accounts: list[Any]
     data_bytes: dict[bytes, AuthDataItem]
     data_str: dict[str, AuthDataItem]
 
