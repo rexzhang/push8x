@@ -69,8 +69,8 @@ class TestWorkerGuardian:
     async def test_worker_name_attribute(self):
         """Test that _worker_name attribute is set on decorated function."""
         worker = MockWorker()
-        assert worker.normal_worker._worker_name == "test_worker"
-        assert worker.error_worker._worker_name == "error_worker"
+        assert worker.normal_worker.worker_name == "test_worker"
+        assert worker.error_worker.worker_name == "error_worker"
 
     @pytest.mark.asyncio
     async def test_error_worker_retries_and_gives_up(self):

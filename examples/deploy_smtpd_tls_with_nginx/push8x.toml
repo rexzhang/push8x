@@ -1,6 +1,8 @@
 [receiver.smtpd]
-# 用于向 nginx 公告 SMTPd 监听的主机和端口
 support_proxy_protocol = true
+
+[receiver.smtpd.listen_announce]
+# 用于向 nginx 公告 SMTPd 监听的主机和端口
 host = "192.168.1.111"
 port = 8025
 

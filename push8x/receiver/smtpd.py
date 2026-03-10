@@ -34,14 +34,14 @@ from .common import ReceiverAbc
 class ReceiverSmtpdHttpAuth(AuthAbc):
     receiver_type = ReceiverType.SMTPD
 
-    def __init__(self, config: Config, smtpd_host: str, smtpd_port: int) -> None:
+    def __init__(self, config: Config) -> None:
         super().__init__(config.receiver.smtpd.accounts)
         self.config_receiver_smtpd = config.receiver.smtpd
 
         self.response_success_headers = [
             b"Auth-Status: OK",
-            f"Auth-Server: {smtpd_host}".encode(),
-            f"Auth-Port: {smtpd_port}".encode(),
+            f"Auth-Server: {config.receiver.smtpd.listen_announce.host}".encode(),
+            f"Auth-Port: {config.receiver.smtpd.listen_announce.port}".encode(),
         ]
 
         self.response_ip_blocked = HttpServerResponse(
@@ -323,8 +323,8 @@ class ReceiverSmtpd(ReceiverAbc):
                 auth_required=self.authenticator is not None,
                 authenticator=self.authenticator,
             ),
-            host=self.config.receiver.smtpd.bind.host,
-            port=self.config.receiver.smtpd.bind.port,
+            host=self.config.receiver.smtpd.listen.host,
+            port=self.config.receiver.smtpd.listen.port,
         )
         async with server:
             behind_proxy = (
@@ -335,7 +335,7 @@ class ReceiverSmtpd(ReceiverAbc):
             auth_info = "with AUTH" if self.authenticator else "without AUTH"
             tls_info = "with STARTTLS" if self.tls_context else "without STARTTLS"
             logger.info(
-                f"{self.type} listen on {self.config.receiver.smtpd.bind.host}:{self.config.receiver.smtpd.bind.port} ({behind_proxy}, {auth_info}, {tls_info})"
+                f"{self.type} listen on {self.config.receiver.smtpd.listen.host}:{self.config.receiver.smtpd.listen.port}, announce on {self.config.receiver.smtpd.listen_announce.host}:{self.config.receiver.smtpd.listen_announce.port}, ({behind_proxy}, {auth_info}, {tls_info})"
             )
             await server.serve_forever()
 

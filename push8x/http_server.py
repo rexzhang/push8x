@@ -110,11 +110,7 @@ class HttpServer:
         self.webhook_auth = ReceiverWebhookAuth(config.receiver.webhook.accounts)
         self.webhook_q = webhook_q
 
-        self.smtpd_http_auth = ReceiverSmtpdHttpAuth(
-            config=self.config,
-            smtpd_host=config.receiver.smtpd.host,
-            smtpd_port=config.receiver.smtpd.port,
-        )
+        self.smtpd_http_auth = ReceiverSmtpdHttpAuth(config=self.config)
 
     @worker_guardian(name="server:httpd")
     async def worker(self):
@@ -123,16 +119,16 @@ class HttpServer:
             lambda: HttpServerProtocol(
                 self.webhook_auth, self.webhook_q, self.smtpd_http_auth
             ),
-            self.config.http_server.bind.host,
-            self.config.http_server.bind.port,
+            self.config.http_server.listen.host,
+            self.config.http_server.listen.port,
         )
         if self.webhook_auth.accounts:
             logger.info(
-                f"{self.webhook_auth.receiver_type} enabled at: http://{self.config.http_server.bind.host}:{self.config.http_server.bind.port}/api/webhooks, accounts: {len(self.webhook_auth.accounts)}"
+                f"{self.webhook_auth.receiver_type} enabled at: http://{self.config.http_server.listen.host}:{self.config.http_server.listen.port}/api/webhooks, accounts: {len(self.webhook_auth.accounts)}"
             )
         if self.smtpd_http_auth.accounts:
             logger.info(
-                f"{self.smtpd_http_auth.receiver_type} HTTP Auth enabled at: http://{self.config.http_server.bind.host}:{self.config.http_server.bind.port}/api/smtpd/auth, accounts: {len(self.smtpd_http_auth.accounts)}"
+                f"{self.smtpd_http_auth.receiver_type} HTTP Auth enabled at: http://{self.config.http_server.listen.host}:{self.config.http_server.listen.port}/api/smtpd/auth, accounts: {len(self.smtpd_http_auth.accounts)}"
             )
         async with server:
             await server.serve_forever()

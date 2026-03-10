@@ -9,10 +9,10 @@ from typing import Any, TypeAlias
 from aiosmtpd.smtp import Session as AiosmtpdSession
 
 DEFAULT_CONFIG_FILENAME = "/etc/push8x.toml"
-DEFAULT_HTTP_BIND_HOST = "localhost"
-DEFAULT_HTTP_BIND_PORT = 8000
-DEFAULT_SMTPD_BIND_HOST = "localhost"
-DEFAULT_SMTPD_BIND_PORT = 8025
+DEFAULT_HTTP_LISTEN_HOST = "localhost"
+DEFAULT_HTTP_LISTEN_PORT = 8000
+DEFAULT_SMTPD_LISTEN_HOST = "localhost"
+DEFAULT_SMTPD_LISTEN_PORT = 8025
 
 HttpHeaders: TypeAlias = dict[str, str]  # key 小写化了的
 

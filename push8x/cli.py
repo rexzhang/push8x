@@ -8,10 +8,10 @@ import typer
 from .config import reinit_config
 from .constans import (
     DEFAULT_CONFIG_FILENAME,
-    DEFAULT_HTTP_BIND_HOST,
-    DEFAULT_HTTP_BIND_PORT,
-    DEFAULT_SMTPD_BIND_HOST,
-    DEFAULT_SMTPD_BIND_PORT,
+    DEFAULT_HTTP_LISTEN_HOST,
+    DEFAULT_HTTP_LISTEN_PORT,
+    DEFAULT_SMTPD_LISTEN_HOST,
+    DEFAULT_SMTPD_LISTEN_PORT,
     Msg,
     MsgContentFormat,
     ReceiverType,
@@ -49,26 +49,26 @@ def main(
 
 @app.command()
 def serve(
-    http_bind_host: str = typer.Option(
-        DEFAULT_HTTP_BIND_HOST, help="http server bind host"
+    http_listen_host: str = typer.Option(
+        DEFAULT_HTTP_LISTEN_HOST, help="http server listen host"
     ),
-    http_bind_port: int = typer.Option(
-        DEFAULT_HTTP_BIND_PORT, help="http server bind port"
+    http_listen_port: int = typer.Option(
+        DEFAULT_HTTP_LISTEN_PORT, help="http server listen port"
     ),
-    smtpd_bind_host: str = typer.Option(
-        DEFAULT_SMTPD_BIND_HOST, help="smtpd server bind host"
+    smtpd_listen_host: str = typer.Option(
+        DEFAULT_SMTPD_LISTEN_HOST, help="smtpd server listen host"
     ),
-    smtpd_bind_port: int = typer.Option(
-        DEFAULT_SMTPD_BIND_PORT, help="smtpd server bind port"
+    smtpd_listen_port: int = typer.Option(
+        DEFAULT_SMTPD_LISTEN_PORT, help="smtpd server listen port"
     ),
 ) -> Any:
     reinit_config(state.config_filename)
     from .config import config
 
-    config.http_server.bind.host = http_bind_host
-    config.http_server.bind.port = http_bind_port
-    config.receiver.smtpd.bind.host = smtpd_bind_host
-    config.receiver.smtpd.bind.port = smtpd_bind_port
+    config.http_server.listen.host = http_listen_host
+    config.http_server.listen.port = http_listen_port
+    config.receiver.smtpd.listen.host = smtpd_listen_host
+    config.receiver.smtpd.listen.port = smtpd_listen_port
     serve_main(config)
 
 

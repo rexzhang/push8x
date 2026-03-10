@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from aiosmtpd.smtp import AuthResult, LoginPassword
 
-from push8x.config import Bind, Config, ReceiverSmtpd, ReceiverSmtpdAccount
+from push8x.config import Config, Listen, ReceiverSmtpd, ReceiverSmtpdAccount
 from push8x.constans import Msg, MsgContentFormat, ReceiverType
 from push8x.receiver.smtpd import ReceiverSmtpd as ReceiverSmtpdClass
 from push8x.receiver.smtpd import (
@@ -37,9 +37,9 @@ def mock_config(mocker):
     config = mocker.MagicMock(spec=Config)
     config.receiver = mocker.MagicMock()
     config.receiver.smtpd = mocker.MagicMock(spec=ReceiverSmtpd)
-    config.receiver.smtpd.bind = mocker.MagicMock(spec=Bind)
-    config.receiver.smtpd.bind.host = "127.0.0.1"
-    config.receiver.smtpd.bind.port = 8025
+    config.receiver.smtpd.listen = mocker.MagicMock(spec=Listen)
+    config.receiver.smtpd.listen.host = "127.0.0.1"
+    config.receiver.smtpd.listen.port = 8025
     config.receiver.smtpd.behind_proxy = False
     config.receiver.smtpd.accounts = []
     config.receiver.smtpd.sender_ip_whitelist = set()
@@ -47,8 +47,9 @@ def mock_config(mocker):
     config.receiver.smtpd.to_value_regex = None
     config.receiver.smtpd.starttls_certfile = None
     config.receiver.smtpd.starttls_keyfile = None
-    config.receiver.smtpd.host = "127.0.0.1"
-    config.receiver.smtpd.port = 8025
+    config.receiver.smtpd.announce = mocker.MagicMock(spec=Listen)
+    config.receiver.smtpd.announce.host = "127.0.0.1"
+    config.receiver.smtpd.announce.port = 8025
     return config
 
 

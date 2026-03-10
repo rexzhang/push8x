@@ -1,7 +1,6 @@
 WIP:
     ☐ config
-        ☐ 配置信息逻辑自检
-            ☐ sender_name
+        ✔ 配置信息逻辑自检 @done(26-03-10 21:52)
     ☐ Receiver
         ✔ 允许基于账号打 mark, 给后面的 mark 使用 @done(26-03-10 14:37)
         ✔ 考虑将 accounts 中的其他信息均变为 receiver_ext: dict[str, Any] @done(26-03-10 14:37)
@@ -22,7 +21,7 @@ WIP:
         ☐ 发送失败后重新发送 @high
     ☐ sender.blackhole
         ✔ 完善为 debug 工具 @done(26-03-03 21:57)
-    ☐ sender.webhook
+    ☐ sender.webhook !TODO!
         ☐ 待设计
     ☐ sender.smtp
         ✔ 支持邮件发送的回落 @done(26-02-14 15:12)
@@ -39,10 +38,10 @@ WIP:
         ✔ 测试覆盖 @done(26-03-07 15:51)
         ☐ ruler 也可以打标记?
     ☐ Worker
-        ☐ 清理代码
-    ☐ 开发/演进支持
-        ☐ dump smtpd 收到的信息,用于分析
-        ☐ task 全链路日志跟踪辅助
+        ✔ 清理代码 @done(26-03-10 16:02)
+    ☐ logger
+        ☐ 全链路日志整理
+        ☐ 更完善的基于配置的日志开关
 
 backlog:
     ☐ 支持 python3.14+

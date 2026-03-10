@@ -11,10 +11,10 @@ from loguru import logger
 from push8x.constans import Rule
 
 from .constans import (
-    DEFAULT_HTTP_BIND_HOST,
-    DEFAULT_HTTP_BIND_PORT,
-    DEFAULT_SMTPD_BIND_HOST,
-    DEFAULT_SMTPD_BIND_PORT,
+    DEFAULT_HTTP_LISTEN_HOST,
+    DEFAULT_HTTP_LISTEN_PORT,
+    DEFAULT_SMTPD_LISTEN_HOST,
+    DEFAULT_SMTPD_LISTEN_PORT,
     ReceiverType,
     SenderType,
 )
@@ -36,14 +36,14 @@ class Logging:
 
 
 @dataclass
-class Bind:
-    host: str = DEFAULT_HTTP_BIND_HOST
-    port: int = DEFAULT_HTTP_BIND_PORT
+class Listen:
+    host: str = DEFAULT_HTTP_LISTEN_HOST
+    port: int = DEFAULT_HTTP_LISTEN_PORT
 
 
 @dataclass
 class HttpServer:
-    bind: Bind = field(default_factory=Bind)
+    listen: Listen = field(default_factory=Listen)
 
 
 # provider ---
@@ -70,7 +70,7 @@ class ReceiverAbc(ProviderAbc):
 @dataclass
 class ReceiverWebhookAccount:
     # base info
-    name: str  # 只能包含字母数字 TODO:内存检查
+    name: str  # 只能包含字母数字 TODO:内容检查
     token: str
 
     # ext info
@@ -109,14 +109,18 @@ class ReceiverSmtpd(ReceiverAbc):
         return ReceiverType.SMTPD
 
     # deploy ---
-    bind: Bind = field(
-        default_factory=lambda: Bind(DEFAULT_SMTPD_BIND_HOST, DEFAULT_SMTPD_BIND_PORT)
+    listen: Listen = field(
+        default_factory=lambda: Listen(
+            DEFAULT_SMTPD_LISTEN_HOST, DEFAULT_SMTPD_LISTEN_PORT
+        )
     )
     # --- proxy protocol support
     behind_proxy: bool = False
-    # announcement TODO: rename => report?
-    host: str = DEFAULT_SMTPD_BIND_HOST
-    port: int = DEFAULT_SMTPD_BIND_PORT
+    listen_announce: Listen = field(
+        default_factory=lambda: Listen(
+            DEFAULT_SMTPD_LISTEN_HOST, DEFAULT_SMTPD_LISTEN_PORT
+        )
+    )
 
     # --- STARTTLS support
     starttls_certfile: str | None = None  # path to cert file
@@ -236,19 +240,129 @@ class Config(JSONPyWizard):
             if self.rules[index].name == "":
                 self.rules[index].name = f"R{index+1:03d}"
 
+    def _validate_config(self) -> list[str]:
+        """Validate config logic and return list of warning messages.
+
+        Returns:
+            list[str]: List of warning messages (empty if no warnings)
+        """
+        warnings: list[str] = []
+
+        # validate common ---
+        if self.common.debug:
+            warnings.append(
+                "Debug mode is enabled, this should not be used in production"
+            )
+
+        # validate http_server ---
+        if self.http_server.listen.port < 1 or self.http_server.listen.port > 65535:
+            warnings.append(
+                f"http_server port {self.http_server.listen.port} is out of valid range (1-65535)"
+            )
+
+        # validate receiver.smtpd ---
+        smtpd = self.receiver.smtpd
+        if smtpd.enable:
+            # check listen port
+            if smtpd.listen.port < 1 or smtpd.listen.port > 65535:
+                warnings.append(
+                    f"smtpd listen port {smtpd.listen.port} is out of valid range (1-65535)"
+                )
+
+            # check announce port
+            if smtpd.listen_announce.port < 1 or smtpd.listen_announce.port > 65535:
+                warnings.append(
+                    f"smtpd announce port {smtpd.listen_announce.port} is out of valid range (1-65535)"
+                )
+
+            # check STARTTLS config
+            has_starttls_cert = smtpd.starttls_certfile is not None
+            has_starttls_key = smtpd.starttls_keyfile is not None
+            if has_starttls_cert != has_starttls_key:
+                warnings.append(
+                    "smtpd STARTTLS config incomplete: both starttls_certfile and starttls_keyfile must be set together"
+                )
+
+            # check accounts
+            usernames = set()
+            for account in smtpd.accounts:
+                if account.username in usernames:
+                    warnings.append(
+                        f"smtpd account username '{account.username}' is duplicated"
+                    )
+                usernames.add(account.username)
+
+        # validate receiver.webhook ---
+        webhook = self.receiver.webhook
+        if webhook.enable:
+            names = set()
+            tokens = set()
+            for account in webhook.accounts:
+                if account.name in names:
+                    warnings.append(
+                        f"webhook account name '{account.name}' is duplicated"
+                    )
+                names.add(account.name)
+
+                if account.token in tokens:
+                    warnings.append(
+                        f"webhook account token for '{account.name}' is duplicated"
+                    )
+                tokens.add(account.token)
+
+        # validate senders ---
+        for sender in self.senders:
+            if not sender.enable:
+                continue
+
+            if isinstance(sender, SenderSmtp):
+                # check port
+                if sender.port < 1 or sender.port > 65535:
+                    warnings.append(
+                        f"sender[{sender.name}] port {sender.port} is out of valid range (1-65535)"
+                    )
+
+                # check TLS config
+                if sender.use_tls and sender.start_tls:
+                    warnings.append(
+                        f"sender[{sender.name}] both use_tls and start_tls are enabled, this may cause issues"
+                    )
+
+        # validate rules ---
+        rule_names = set()
+        for i, rule in enumerate(self.rules):
+            # check duplicate rule names
+            if rule.name in rule_names:
+                warnings.append(f"rule[{i}] name '{rule.name}' is duplicated")
+            rule_names.add(rule.name)
+
+            # check if sender exists
+            sender_exists = any(s.name == rule.sender_name for s in self.senders)
+            if not sender_exists:
+                warnings.append(
+                    f"rule[{rule.name}] references non-existent sender '{rule.sender_name}'"
+                )
+
+        return warnings
+
 
 def generate_config_from_dict(
-    data: dict[str, Any], complete_config: bool = True
+    data: dict[str, Any], complete_config: bool = True, validate_config: bool = True
 ) -> Config:
     config = Config.from_dict(data)
     if complete_config:
         config._complete_config()
 
+    if validate_config:
+        warnings = config._validate_config()
+        for warning in warnings:
+            logger.warning(f"Config validation: {warning}")
+
     return config
 
 
 def generate_config_from_file(
-    filename: Path | str, complete_config: bool = True
+    filename: Path | str, complete_config: bool = True, validate_config: bool = True
 ) -> Config | None:
     try:
         with open(filename, "rb") as f:
@@ -264,7 +378,7 @@ def generate_config_from_file(
         logger.error(e)
         return None
 
-    config = generate_config_from_dict(data, complete_config)
+    config = generate_config_from_dict(data, complete_config, validate_config)
     logger.info(f"Load config from file: [{filename}] success!")
     return config
 
@@ -274,7 +388,9 @@ _config: Config
 
 
 def reinit_config(
-    filename: Path | str | None = None, complete_config: bool = True
+    filename: Path | str | None = None,
+    complete_config: bool = True,
+    validate_config: bool = True,
 ) -> Config:
     global _config_filename
     global _config
@@ -287,7 +403,7 @@ def reinit_config(
     else:
         _config_filename = filename
 
-    data = generate_config_from_file(filename, complete_config)
+    data = generate_config_from_file(filename, complete_config, validate_config)
     if data is None:
         data = Config()
     _config = data
