@@ -1,0 +1,16 @@
+# Test all new_* template fields
+
+[logging]
+log_ruler_droped_msg = true
+
+[[rules]]
+name = "R001"
+enable = true
+sender_name = "apprise"
+match_to_value = "*"
+new_from_name = "[Forwarded] {{ msg.from_name }}"
+new_from_value = "noreply@forwarded.com"
+new_to_name = "{{ msg.to_name }} (Archived)"
+new_to_value = "pover://user@token"
+new_title = "FWD: {{ msg.title }}"
+new_content = "Original from {{ msg.from_name }} <{{ msg.from_value }}>:\n\n{{ msg.content }}"

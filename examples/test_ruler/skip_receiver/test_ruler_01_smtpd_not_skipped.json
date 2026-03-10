@@ -1,0 +1,130 @@
+{
+  "description": "skip_receiver=webhook，smtpd 消息不匹配 skip 条件，正常匹配 R001 和 R002",
+  "input_msg": {
+    "receiver": "smtpd",
+    "to_value": "user@example.com"
+  },
+  "output_result": [
+    [
+      {
+        "from_name": "Sender",
+        "from_value": "sender@example.com",
+        "to_name": "Recipient",
+        "to_value": "pover://user@token",
+        "title": "Test Subject",
+        "content": "Test content",
+        "content_format": "plain",
+        "attachments": [],
+        "ext": {},
+        "receiver": "smtpd",
+        "receiver_ext": {
+          "mark": ""
+        },
+        "ruler_matched_rules": [
+          {
+            "sender_name": "apprise",
+            "enable": true,
+            "name": "R001",
+            "ignore_if_matched_other_rule": false,
+            "skip_receiver": "webhook",
+            "skip_receiver_mark": null,
+            "skip_from_name": null,
+            "skip_from_value": null,
+            "skip_to_name": null,
+            "skip_to_value": null,
+            "skip_title": null,
+            "match_receiver": null,
+            "match_receiver_mark": null,
+            "match_from_name": null,
+            "match_from_value": null,
+            "match_to_name": null,
+            "match_to_value": "*",
+            "match_title": null,
+            "ignore_other_rule_if_matched": false,
+            "new_from_name": null,
+            "new_from_value": null,
+            "new_to_name": null,
+            "new_to_value": "pover://user@token",
+            "new_title": null,
+            "new_content": null
+          }
+        ]
+      },
+      null
+    ],
+    [
+      {
+        "from_name": "Sender",
+        "from_value": "sender@example.com",
+        "to_name": "Recipient",
+        "to_value": "user@example.com",
+        "title": "Test Subject",
+        "content": "Test content",
+        "content_format": "plain",
+        "attachments": [],
+        "ext": {},
+        "receiver": "smtpd",
+        "receiver_ext": {
+          "mark": ""
+        },
+        "ruler_matched_rules": [
+          {
+            "sender_name": "apprise",
+            "enable": true,
+            "name": "R001",
+            "ignore_if_matched_other_rule": false,
+            "skip_receiver": "webhook",
+            "skip_receiver_mark": null,
+            "skip_from_name": null,
+            "skip_from_value": null,
+            "skip_to_name": null,
+            "skip_to_value": null,
+            "skip_title": null,
+            "match_receiver": null,
+            "match_receiver_mark": null,
+            "match_from_name": null,
+            "match_from_value": null,
+            "match_to_name": null,
+            "match_to_value": "*",
+            "match_title": null,
+            "ignore_other_rule_if_matched": false,
+            "new_from_name": null,
+            "new_from_value": null,
+            "new_to_name": null,
+            "new_to_value": "pover://user@token",
+            "new_title": null,
+            "new_content": null
+          },
+          {
+            "sender_name": "blackhole",
+            "enable": true,
+            "name": "R002",
+            "ignore_if_matched_other_rule": false,
+            "skip_receiver": null,
+            "skip_receiver_mark": null,
+            "skip_from_name": null,
+            "skip_from_value": null,
+            "skip_to_name": null,
+            "skip_to_value": null,
+            "skip_title": null,
+            "match_receiver": null,
+            "match_receiver_mark": null,
+            "match_from_name": null,
+            "match_from_value": null,
+            "match_to_name": null,
+            "match_to_value": "*",
+            "match_title": null,
+            "ignore_other_rule_if_matched": false,
+            "new_from_name": null,
+            "new_from_value": null,
+            "new_to_name": null,
+            "new_to_value": null,
+            "new_title": null,
+            "new_content": null
+          }
+        ]
+      },
+      null
+    ]
+  ]
+}

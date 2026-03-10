@@ -1,0 +1,28 @@
+# Test complex skip and match combinations
+
+[logging]
+log_ruler_droped_msg = true
+
+[[rules]]
+name = "R001"
+enable = true
+sender_name = "apprise"
+skip_from_value = "*@spam.com"
+skip_title = "*advertisement*"
+match_from_value = "*@company.com"
+match_title = "URGENT*"
+new_to_value = "pover://urgent@token"
+
+[[rules]]
+name = "R002"
+enable = true
+sender_name = "smtp"
+skip_receiver_mark = "test"
+match_from_value = "*@company.com"
+new_to_value = "archive@company.com"
+
+[[rules]]
+name = "R003"
+enable = true
+sender_name = "blackhole"
+match_to_value = "*"

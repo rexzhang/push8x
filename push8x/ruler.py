@@ -53,7 +53,7 @@ class RulerAsyncMatcher:
                 # skip logic
                 if (
                     rule.skip_receiver is not None
-                    or rule.skip_receiver == self.msg.receiver
+                    and rule.skip_receiver == self.msg.receiver
                 ):
                     continue
                 if self._skip_logic(rule, RULS_SKIP_KEYS_MSG):
@@ -78,6 +78,7 @@ class RulerAsyncMatcher:
                 self.matched_rules.append(rule)
                 new_msg = self._convert_msg_context(rule)
                 new_msg.ruler_matched_rules = deepcopy(self.matched_rules)
+
                 # get sender
                 sender = self.sender_mapping.get(rule.sender_name)
 

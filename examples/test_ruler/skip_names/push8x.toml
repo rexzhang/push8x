@@ -1,0 +1,19 @@
+# Test skip_from_name and skip_to_name - skip messages from/to specific names
+
+[logging]
+log_ruler_droped_msg = true
+
+[[rules]]
+name = "R001"
+enable = true
+sender_name = "apprise"
+skip_from_name = "Spammer*"
+skip_to_name = "test*"
+match_to_value = "*"
+new_to_value = "pover://user@token"
+
+[[rules]]
+name = "R002"
+enable = true
+sender_name = "blackhole"
+match_to_value = "*"

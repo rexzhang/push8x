@@ -1,0 +1,60 @@
+{
+  "description": "所有 new_* 字段模板渲染",
+  "input_msg": {
+    "from_name": "John Doe",
+    "from_value": "john@example.com",
+    "to_name": "Support Team",
+    "to_value": "support@example.com",
+    "title": "Help Request",
+    "content": "I need help with my account."
+  },
+  "output_result": [
+    [
+      {
+        "from_name": "[Forwarded] John Doe",
+        "from_value": "noreply@forwarded.com",
+        "to_name": "Support Team (Archived)",
+        "to_value": "pover://user@token",
+        "title": "FWD: Help Request",
+        "content": "Original from John Doe <john@example.com>:\n\nI need help with my account.",
+        "content_format": "plain",
+        "attachments": [],
+        "ext": {},
+        "receiver": "smtpd",
+        "receiver_ext": {
+          "mark": ""
+        },
+        "ruler_matched_rules": [
+          {
+            "sender_name": "apprise",
+            "enable": true,
+            "name": "R001",
+            "ignore_if_matched_other_rule": false,
+            "skip_receiver": null,
+            "skip_receiver_mark": null,
+            "skip_from_name": null,
+            "skip_from_value": null,
+            "skip_to_name": null,
+            "skip_to_value": null,
+            "skip_title": null,
+            "match_receiver": null,
+            "match_receiver_mark": null,
+            "match_from_name": null,
+            "match_from_value": null,
+            "match_to_name": null,
+            "match_to_value": "*",
+            "match_title": null,
+            "ignore_other_rule_if_matched": false,
+            "new_from_name": "[Forwarded] {{ msg.from_name }}",
+            "new_from_value": "noreply@forwarded.com",
+            "new_to_name": "{{ msg.to_name }} (Archived)",
+            "new_to_value": "pover://user@token",
+            "new_title": "FWD: {{ msg.title }}",
+            "new_content": "Original from {{ msg.from_name }} <{{ msg.from_value }}>:\n\n{{ msg.content }}"
+          }
+        ]
+      },
+      null
+    ]
+  ]
+}

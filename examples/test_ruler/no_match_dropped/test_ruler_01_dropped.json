@@ -1,0 +1,9 @@
+{
+  "description": "消息不匹配任何规则，被丢弃（output_result 为空）",
+  "input_msg": {
+    "from_value": "user@blocked.com",
+    "title": "Normal Message",
+    "to_value": "user@example.com"
+  },
+  "output_result": []
+}

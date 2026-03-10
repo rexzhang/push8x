@@ -1,0 +1,18 @@
+# Test skip_to_value - skip messages to specific recipient addresses
+
+[logging]
+log_ruler_droped_msg = true
+
+[[rules]]
+name = "R001"
+enable = true
+sender_name = "apprise"
+skip_to_value = "unsubscribe@*"
+match_to_value = "*"
+new_to_value = "pover://user@token"
+
+[[rules]]
+name = "R002"
+enable = true
+sender_name = "blackhole"
+match_to_value = "*"

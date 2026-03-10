@@ -1,0 +1,24 @@
+# Test receiver_ext with multiple fields
+
+[logging]
+log_ruler_droped_msg = true
+
+[[rules]]
+name = "R001"
+enable = true
+sender_name = "apprise"
+match_receiver_mark = "priority"
+new_to_value = "pover://priority@token"
+
+[[rules]]
+name = "R002"
+enable = true
+sender_name = "smtp"
+skip_receiver_mark = "test"
+new_to_value = "archive@example.com"
+
+[[rules]]
+name = "R003"
+enable = true
+sender_name = "blackhole"
+match_to_value = "*"

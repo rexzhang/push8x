@@ -1,0 +1,24 @@
+# Test match_from_name and match_to_name
+
+[logging]
+log_ruler_droped_msg = true
+
+[[rules]]
+name = "R001"
+enable = true
+sender_name = "apprise"
+match_from_name = "Admin*"
+new_to_value = "pover://admin@token"
+
+[[rules]]
+name = "R002"
+enable = true
+sender_name = "smtp"
+match_to_name = "*Production*"
+new_to_value = "archive@production.com"
+
+[[rules]]
+name = "R003"
+enable = true
+sender_name = "blackhole"
+match_to_value = "*"
