@@ -18,7 +18,9 @@
         "attachments": [],
         "ext": {},
         "receiver": "smtpd",
-        "receiver_mark": "mark1",
+        "receiver_ext": {
+          "mark": "mark1"
+        },
         "ruler_matched_rules": [
           {
             "sender_name": "smtp",

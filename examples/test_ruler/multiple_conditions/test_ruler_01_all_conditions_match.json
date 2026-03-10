@@ -18,7 +18,9 @@
         "attachments": [],
         "ext": {},
         "receiver": "smtpd",
-        "receiver_mark": "urgent",
+        "receiver_ext": {
+          "mark": "urgent"
+        },
         "ruler_matched_rules": [
           {
             "sender_name": "apprise",
@@ -63,7 +65,9 @@
         "attachments": [],
         "ext": {},
         "receiver": "smtpd",
-        "receiver_mark": "urgent",
+        "receiver_ext": {
+          "mark": "urgent"
+        },
         "ruler_matched_rules": [
           {
             "sender_name": "apprise",

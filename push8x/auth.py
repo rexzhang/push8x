@@ -24,9 +24,20 @@ class AuthDataGenerator:
     def __next__(self) -> tuple[str, AuthDataItem]:
         item = next(self.accounts)
 
-        ext = asdict(item)
-        username = ext.pop(self.username_key)
-        password = ext.pop(self.password_key)
+        data = asdict(item)
+        username = ""
+        password = ""
+        ext: dict[str, Any] = dict()
+        for k in data.keys():
+            if k == self.username_key:
+                username = data[k]
+                ext[k] = data[k]
+
+            elif k == self.password_key:
+                password = data[k]
+
+            else:
+                ext[k] = data[k]
 
         return username, AuthDataItem(
             password_str=password, password_bytes=password.encode(), ext=ext
@@ -62,7 +73,7 @@ class AuthAbc:
             )
         }
 
-    def check(self, username: bytes, password: bytes) -> tuple[bool, dict[str, Any]]:
+    def auth(self, username: bytes, password: bytes) -> tuple[bool, dict[str, Any]]:
         auth_data_item = self.data_bytes.get(username, None)
         if auth_data_item is None:
             return False, {}
@@ -72,7 +83,7 @@ class AuthAbc:
 
         return False, auth_data_item.ext
 
-    def check_str(self, username: str, password: str) -> tuple[bool, dict[str, Any]]:
+    def auth_str(self, username: str, password: str) -> tuple[bool, dict[str, Any]]:
         auth_data_item = self.data_str.get(username, None)
         if auth_data_item is None:
             return False, {}

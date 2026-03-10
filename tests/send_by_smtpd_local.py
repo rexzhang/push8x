@@ -11,7 +11,7 @@ async def send_async_email(message: email.message.EmailMessage | email.message.M
     smtp_client = SMTP(hostname="localhost", port=8025, use_tls=False)
 
     async with smtp_client:
-        await smtp_client.login("sender1@example.com", "password")
+        await smtp_client.login("sender2@example.com", "password")
         await smtp_client.send_message(message)
         print("邮件已异步发送成功！")
 

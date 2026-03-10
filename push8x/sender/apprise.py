@@ -1,7 +1,7 @@
 import apprise
 from loguru import logger
 
-from ..constans import Msg, MsgContentType, SenderType
+from ..constans import Msg, MsgContentFormat, SenderType
 from ..worker import worker_guardian
 from .common import SenderAbc
 
@@ -16,11 +16,11 @@ class SenderApprise(SenderAbc):
         ap = apprise.Apprise()
         ap.add(msg.to_value)
         match msg.content_format:
-            case MsgContentType.PLAIN:
+            case MsgContentFormat.PLAIN:
                 body_format = apprise.NotifyFormat.TEXT
-            case MsgContentType.HTML:
+            case MsgContentFormat.HTML:
                 body_format = apprise.NotifyFormat.HTML
-            case MsgContentType.MARKDOWN:
+            case MsgContentFormat.MARKDOWN:
                 body_format = apprise.NotifyFormat.MARKDOWN
         ap.notify(body=msg.content, title=msg.title, body_format=body_format)
 

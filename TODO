@@ -4,10 +4,10 @@ WIP:
             ☐ sender_name
     ☐ Receiver
         ☐ 允许基于账号打 mark, 给后面的 mark 使用
+        ☐ 考虑将 accounts 中的其他信息均变为 receiver_ext: dict[str, Any]
     ☐ receiver.webhook
-        ☐ 支持接受消息
         ✔ 支持基于 token 的认证方式 @done(26-02-15 20:40)
-        ☐ 完整的 payload 设计
+        ✔ 完整的 payload 设计 @done(26-03-10 12:49)
     ☐ receiver.smtpd
         ✔ 正确的解析 text 格式邮件 @done(26-02-13 15:06)
         ✔ 正确的解析 html 格式邮件 @done(26-02-13 15:07)
@@ -37,6 +37,7 @@ WIP:
         ✔ drop 了的消息要有一个查看的渠道 @done(26-03-03 22:21)
         ✔ 支持 enable @done(26-03-01 14:25)
         ✔ 测试覆盖 @done(26-03-07 15:51)
+        ☐ ruler 也可以打标记?
     ☐ 开发/演进支持
         ☐ dump smtpd 收到的信息,用于分析
         ☐ task 全链路日志跟踪辅助

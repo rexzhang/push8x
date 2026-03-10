@@ -47,6 +47,9 @@ class SenderType(Enum):
     APPRISE = "apprise"
 
 
+HTTP_HEADER_KEY_AUTH_NAME = "x-push8x-webhook-name"
+HTTP_HEADER_KEY_AUTH_TOKEN = "authorization"
+
 # rules ---
 
 
@@ -62,7 +65,7 @@ class Rule:
 
     # skip_* logic ---
     # - None is mean ignore
-    # - match ANYONE mean skip all
+    # - skip ANYONE mean skip all
     skip_receiver: ReceiverType | None = None
     skip_receiver_mark: str | None = None
 
@@ -98,42 +101,21 @@ class Rule:
     new_content: str | None = None
 
 
-RULS_SKIP_KEYS = (
-    "receiver_mark",
+RULS_SKIP_KEYS_RECEIVER = RULE_MATCH_KEYS_RECEIVER = ["mark"]
+RULS_SKIP_KEYS_MSG = RULE_MATCH_KEYS_MSG = [
     "from_name",
     "from_value",
     "to_name",
     "to_value",
     "title",
-)
-RULE_MATCH_KEYS = (
-    "receiver_mark",
-    "from_name",
-    "from_value",
-    "to_name",
-    "to_value",
-    "title",
-)
-RULE_NEW_KEYS = ("from_name", "from_value", "to_name", "to_value", "title", "content")
+]
+RULE_NEW_KEYS = ["from_name", "from_value", "to_name", "to_value", "title", "content"]
 
 
 # Msg ---
 
 
-class MsgFromToType(Enum):
-    EMAIL = "EMAIL"
-    WEBHOOK = "WEBHOOK"
-    APPRISE = "APPRISE"
-
-
-class MsgFromTo:
-    type: MsgFromToType
-
-    name: str
-    value: str
-
-
-class MsgContentType(Enum):
+class MsgContentFormat(Enum):
     PLAIN = "plain"
     HTML = "html"
     MARKDOWN = "markdown"
@@ -149,7 +131,7 @@ class MsgBaseInfo:
 
     title: str
     content: str
-    content_format: MsgContentType
+    content_format: MsgContentFormat
     attachments: list[dict[str, Any]]
 
     # message ext info
@@ -157,6 +139,8 @@ class MsgBaseInfo:
 
 
 MSG_BASE_INFO_KEYS = [f.name for f in fields(MsgBaseInfo)]
+MSG_BASE_INFO_KEYS_NO_IN_WEBHOOK_REQUEST = {"attachments", "ext"}
+MSG_BASE_INFO_KEYS_WEBHOOK_REQUIRED = {"to_value", "title", "content"}
 
 
 @dataclass(slots=True)
@@ -164,7 +148,8 @@ class Msg(MsgBaseInfo):
     # receiver
     receiver: ReceiverType
     receiver_smtpd_session: AiosmtpdSession | None
-    receiver_mark: str
+    receiver_webhook_headers: HttpHeaders | None
+    receiver_ext: dict[str, Any]  # other name: auth_ext
 
     # ruler
     ruler_matched_rules: list[Rule]

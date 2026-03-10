@@ -7,11 +7,11 @@ from http import HTTPStatus
 from typing import Any, TypedDict
 
 import mailparser
+import rich
+import rich.pretty
 from aiosmtpd.proxy_protocol import ProxyData
 from aiosmtpd.smtp import SMTP, AuthResult, Envelope, LoginPassword, Session
 from loguru import logger
-from rich import inspect
-from rich.pretty import pprint
 
 from ..auth import AuthAbc
 from ..config import Config
@@ -19,7 +19,7 @@ from ..constans import (
     HttpHeaders,
     HttpServerResponse,
     Msg,
-    MsgContentType,
+    MsgContentFormat,
     MsgQueue,
     ReceiverType,
 )
@@ -53,11 +53,11 @@ class ReceiverSmtpdHttpAuth(AuthAbc):
             [b"Auth-Status: Invalid login or password", b"Auth-Wait: 3"],
         )
 
-    def check_headers(self, headers: HttpHeaders) -> HttpServerResponse:
+    def auth_nginx_mail_auth_http(self, headers: HttpHeaders) -> HttpServerResponse:
         """https://nginx.org/en/docs/mail/ngx_mail_auth_http_module.html"""
 
         # inspect(headers, all=True)
-        pprint(headers)
+        rich.pretty.pprint(headers)
 
         # check sender_ip_whitelist
         if self.config_receiver_smtpd.sender_ip_whitelist and (
@@ -72,8 +72,8 @@ class ReceiverSmtpdHttpAuth(AuthAbc):
         if auth_user is None or auth_pass is None:
             return self.response_failed
 
-        auth_checked, auth_ext = self.check_str(username=auth_user, password=auth_pass)
-        if auth_checked:
+        auth_success, auth_ext = self.auth_str(username=auth_user, password=auth_pass)
+        if auth_success:
             return HttpServerResponse(
                 HTTPStatus.OK,
                 self.response_success_headers
@@ -104,14 +104,14 @@ class ReceiverSmtpdAuthenticator:
         if not isinstance(auth_data, LoginPassword):
             return fail_nothandled
 
-        success, ext = self.auth.check(auth_data.login, auth_data.password)
-        if success:
+        auth_success, auth_ext = self.auth.auth(auth_data.login, auth_data.password)
+        if auth_success:
             # Store auth info in session for later use
             setattr(
                 session,
-                "ext_auth_data",
+                "ext_auth_ext",
                 {
-                    **ext,
+                    **auth_ext,
                     "username": auth_data.login.decode(),
                 },
             )
@@ -134,7 +134,6 @@ class ReceiverSmtpdSMTP(SMTP):
     def __init__(self, behind_proxy: bool, *args, **kwargs):
         if behind_proxy:
             # behind proxy, enable proxy protocol support
-            logger.info("receiver.smtpd: `proxy protocol support` has been enabled")
             kwargs.setdefault("proxy_protocol_timeout", 3.0)
 
         super().__init__(*args, **kwargs)
@@ -164,13 +163,13 @@ class ReceiverSmtpdHandler:
         envelope: Envelope,
         ext_proxy_data: ProxyData,
     ):
-        setattr(session, "ext_proxy_data", ext_proxy_data)
+        # enable proxy protocol support
         return "250 OK"
 
     async def handle_DATA(
         self, server: ReceiverSmtpdSMTP, session: Session, envelope: Envelope
     ):
-        inspect(session)
+        rich.inspect(session)
 
         # parse mail
         mail: mailparser.MailParser = mailparser.parse_from_bytes(
@@ -193,10 +192,10 @@ class ReceiverSmtpdHandler:
 
         if len(mail.text_html) > 0:
             content = "".join(mail.text_html)
-            content_format = MsgContentType.HTML
+            content_format = MsgContentFormat.HTML
         else:
             content = "\n".join(mail.text_plain)
-            content_format = MsgContentType.PLAIN
+            content_format = MsgContentFormat.PLAIN
 
         attachments = []
         if mail.attachments:
@@ -223,29 +222,24 @@ class ReceiverSmtpdHandler:
                 if login_str is None:
                     raise Exception("Codebase error: no LOGIN in ext_xclient")
 
-                login_info: dict[str, Any] = json.loads(login_str)
-                receiver_from_value = login_info.get("from_value")
+                receiver_ext: dict[str, Any] = json.loads(login_str)
+                receiver_from_value = receiver_ext.get("from_value")
                 if receiver_from_value and receiver_from_value != from_value:
                     return f"550 receiver.smtpd.accounts from_value: {receiver_from_value} is not equal email from: {from_value}"
-
-                receiver_mark = login_info.get("receiver_mark", "")
 
         else:
             # direct connection
-            ext_auth_data: dict[str, Any] | None = getattr(
-                session, "ext_auth_data", None
-            )
+            receiver_ext: dict[str, Any] = getattr(session, "ext_auth_ext", {})
 
-            if ext_auth_data is None:
-                # No authentication
-                receiver_mark = ""
-
-            else:
+            if receiver_ext:
                 # Authenticated via SMTP AUTH
-                receiver_from_value = ext_auth_data.get("from_value")
+                receiver_from_value = receiver_ext.get("from_value")
                 if receiver_from_value and receiver_from_value != from_value:
                     return f"550 receiver.smtpd.accounts from_value: {receiver_from_value} is not equal email from: {from_value}"
-                receiver_mark = ext_auth_data.get("receiver_mark", "")
+
+            else:
+                # No authentication
+                receiver_ext = dict()
 
         # check from_value/to_value
         if self.config_receiver_smtpd.from_value_regex:
@@ -260,9 +254,7 @@ class ReceiverSmtpdHandler:
 
         logger.debug(f"Receiver smtpd: {from_value} => {to_value}")
         msg = Msg(
-            receiver=ReceiverType.SMTPD,
-            receiver_smtpd_session=session,
-            ruler_matched_rules=list(),
+            # msg
             from_name=from_name,
             from_value=from_value,
             to_name=to_name,
@@ -272,7 +264,13 @@ class ReceiverSmtpdHandler:
             content_format=content_format,
             attachments=attachments,
             ext=dict(),
-            receiver_mark=receiver_mark,
+            # receiver
+            receiver=ReceiverType.SMTPD,
+            receiver_smtpd_session=session,
+            receiver_webhook_headers=None,
+            receiver_ext=receiver_ext,
+            # ruler
+            ruler_matched_rules=list(),
         )
 
         await self.q.put(msg)

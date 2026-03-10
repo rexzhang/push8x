@@ -68,9 +68,13 @@ class ReceiverAbc(ProviderAbc):
 
 
 @dataclass
-class ReceiverWebhookEndpoint:
-    name: str  # 只能包含字母数字
+class ReceiverWebhookAccount:
+    # base info
+    name: str  # 只能包含字母数字 TODO:内存检查
     token: str
+
+    # ext info
+    mark: str = ""  # for ruler, if empty mean no mark
 
 
 @dataclass
@@ -80,18 +84,21 @@ class ReceiverWebhook(ReceiverAbc):
     def type(self) -> ReceiverType:
         return ReceiverType.WEBHOOK
 
-    endpoints: list[ReceiverWebhookEndpoint] = field(default_factory=list)
+    accounts: list[ReceiverWebhookAccount] = field(default_factory=list)
 
 
 @dataclass
 class ReceiverSmtpdAccount:
+    # base info
     username: str  # can be a email address or just a string
     password: str
 
-    from_value: str | None = (
-        None  # if is not None, will check email's from. TODO: support regex
-    )
+    # ext info
     mark: str = ""  # for ruler, if empty mean no mark
+
+    # filter
+    # if is not None, will check email's from. TODO: support regex
+    from_value: str | None = None
 
 
 @dataclass
@@ -119,7 +126,7 @@ class ReceiverSmtpd(ReceiverAbc):
     # --- accounts
     accounts: list[ReceiverSmtpdAccount] = field(default_factory=list)
 
-    # --- sender control
+    # --- filter
     sender_ip_whitelist: set[str] = field(default_factory=set)  # TODO
     from_value_regex: str | None = None
     to_value_regex: str | None = None

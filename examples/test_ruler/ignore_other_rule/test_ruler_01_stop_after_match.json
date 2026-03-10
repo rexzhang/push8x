@@ -16,7 +16,9 @@
         "attachments": [],
         "ext": {},
         "receiver": "smtpd",
-        "receiver_mark": "priority",
+        "receiver_ext": {
+          "mark": "priority"
+        },
         "ruler_matched_rules": [
           {
             "sender_name": "apprise",

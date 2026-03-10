@@ -16,7 +16,9 @@
         "attachments": [],
         "ext": {},
         "receiver": "smtpd",
-        "receiver_mark": "important",
+        "receiver_ext": {
+          "mark": "important"
+        },
         "ruler_matched_rules": [
           {
             "sender_name": "smtp",
@@ -61,7 +63,9 @@
         "attachments": [],
         "ext": {},
         "receiver": "smtpd",
-        "receiver_mark": "important",
+        "receiver_ext": {
+          "mark": "important"
+        },
         "ruler_matched_rules": [
           {
             "sender_name": "smtp",
@@ -133,7 +137,9 @@
         "attachments": [],
         "ext": {},
         "receiver": "smtpd",
-        "receiver_mark": "important",
+        "receiver_ext": {
+          "mark": "important"
+        },
         "ruler_matched_rules": [
           {
             "sender_name": "smtp",

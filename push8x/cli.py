@@ -13,7 +13,7 @@ from .constans import (
     DEFAULT_SMTPD_BIND_HOST,
     DEFAULT_SMTPD_BIND_PORT,
     Msg,
-    MsgContentType,
+    MsgContentFormat,
     ReceiverType,
 )
 from .ruler import check_rules
@@ -89,7 +89,7 @@ def cli_check_rules(
     to_value: str = typer.Option("receiver@example.com"),
     title: str = typer.Option("Push8X test mail"),
     content: str = typer.Option("This is a test mail from Push8X"),
-    content_format: MsgContentType = typer.Option(MsgContentType.PLAIN),
+    content_format: MsgContentFormat = typer.Option(MsgContentFormat.PLAIN),
     receiver: ReceiverType = typer.Option(ReceiverType.SMTPD),
     mark: str = typer.Option(""),
 ) -> None:
@@ -97,9 +97,7 @@ def cli_check_rules(
     from .config import config
 
     msg = Msg(
-        receiver=receiver,
-        receiver_smtpd_session=None,
-        ruler_matched_rules=list(),
+        # msg
         from_name=from_name,
         from_value=from_value,
         to_name=to_name,
@@ -109,7 +107,13 @@ def cli_check_rules(
         content_format=content_format,
         attachments=list(),
         ext=dict(),
-        receiver_mark=mark,
+        # receiver
+        receiver=receiver,
+        receiver_smtpd_session=None,
+        receiver_webhook_headers=None,
+        receiver_ext=dict(),
+        # ruler
+        ruler_matched_rules=list(),
     )
 
     result = asyncio.run(check_rules(config, msg))

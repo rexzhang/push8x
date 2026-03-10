@@ -16,7 +16,9 @@
         "attachments": [],
         "ext": {},
         "receiver": "smtpd",
-        "receiver_mark": "normal",
+        "receiver_ext": {
+          "mark": "normal"
+        },
         "ruler_matched_rules": [
           {
             "sender_name": "blackhole",

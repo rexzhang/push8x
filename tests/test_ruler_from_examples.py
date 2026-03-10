@@ -8,7 +8,7 @@ import pytest
 from deepdiff import DeepDiff
 
 from push8x.config import generate_config_from_file
-from push8x.constans import Msg, MsgContentType, ReceiverType, Rule
+from push8x.constans import Msg, MsgContentFormat, ReceiverType, Rule
 from push8x.ruler import check_rules
 from push8x.sender import Sender
 
@@ -32,20 +32,42 @@ def dict_to_msg(data: dict) -> Msg:
         else ReceiverType.WEBHOOK
     )
     return Msg(
-        receiver=receiver_type,
-        receiver_smtpd_session=None,
-        ruler_matched_rules=[],
+        # msg base info
         from_name=data.get("from_name", "Sender"),
         from_value=data.get("from_value", "sender@example.com"),
         to_name=data.get("to_name", "Recipient"),
         to_value=data.get("to_value", "recipient@example.com"),
         title=data.get("title", "Test Subject"),
         content=data.get("content", "Test content"),
-        content_format=MsgContentType.PLAIN,
+        content_format=MsgContentFormat.PLAIN,
         attachments=data.get("attachments", []),
         ext=data.get("ext", {}),
-        receiver_mark=data.get("receiver_mark", ""),
+        # receiver
+        receiver=receiver_type,
+        receiver_smtpd_session=None,
+        receiver_webhook_headers=None,
+        receiver_ext={"mark": data.get("receiver_mark", "")},
+        # ruler
+        ruler_matched_rules=[],
     )
+
+
+def msg_to_dict(msg: Msg) -> dict:
+    """Convert Msg to dict for comparison."""
+    return {
+        "from_name": msg.from_name,
+        "from_value": msg.from_value,
+        "to_name": msg.to_name,
+        "to_value": msg.to_value,
+        "title": msg.title,
+        "content": msg.content,
+        "content_format": msg.content_format.value,
+        "attachments": msg.attachments,
+        "ext": msg.ext,
+        "receiver": msg.receiver.value,
+        "receiver_ext": msg.receiver_ext,
+        "ruler_matched_rules": [rule_to_dict(r) for r in msg.ruler_matched_rules],
+    }
 
 
 def rule_to_dict(rule: Rule) -> dict:
@@ -76,24 +98,6 @@ def rule_to_dict(rule: Rule) -> dict:
         "new_to_value": rule.new_to_value,
         "new_title": rule.new_title,
         "new_content": rule.new_content,
-    }
-
-
-def msg_to_dict(msg: Msg) -> dict:
-    """Convert Msg to dict for comparison."""
-    return {
-        "from_name": msg.from_name,
-        "from_value": msg.from_value,
-        "to_name": msg.to_name,
-        "to_value": msg.to_value,
-        "title": msg.title,
-        "content": msg.content,
-        "content_format": msg.content_format.value,
-        "attachments": msg.attachments,
-        "ext": msg.ext,
-        "receiver": msg.receiver.value,
-        "receiver_mark": msg.receiver_mark,
-        "ruler_matched_rules": [rule_to_dict(r) for r in msg.ruler_matched_rules],
     }
 
 

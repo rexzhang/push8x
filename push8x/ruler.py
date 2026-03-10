@@ -6,9 +6,11 @@ from loguru import logger
 from .config import Config
 from .constans import (
     MSG_BASE_INFO_KEYS,
-    RULE_MATCH_KEYS,
+    RULE_MATCH_KEYS_MSG,
+    RULE_MATCH_KEYS_RECEIVER,
     RULE_NEW_KEYS,
-    RULS_SKIP_KEYS,
+    RULS_SKIP_KEYS_MSG,
+    RULS_SKIP_KEYS_RECEIVER,
     Msg,
     MsgQueue,
     Rule,
@@ -48,10 +50,28 @@ class RulerAsyncMatcher:
                 if rule.ignore_if_matched_other_rule and self.matched_rules:
                     continue
 
-                if self._skip_logic(rule):
+                # skip logic
+                if (
+                    rule.skip_receiver is not None
+                    or rule.skip_receiver == self.msg.receiver
+                ):
+                    continue
+                if self._skip_logic(rule, RULS_SKIP_KEYS_MSG):
+                    continue
+                if self._skip_logic(rule, RULS_SKIP_KEYS_RECEIVER, msg_base=False):
                     continue
 
-                if not self._match_logic(rule):
+                # match logic
+                if (
+                    rule.match_receiver is not None
+                    and rule.match_receiver != self.msg.receiver
+                ):
+                    continue
+                if not self._match_logic(rule, RULE_MATCH_KEYS_MSG):
+                    continue
+                if not self._match_logic(
+                    rule, RULE_MATCH_KEYS_RECEIVER, msg_base=False
+                ):
                     continue
 
                 # make new_msg
@@ -75,25 +95,29 @@ class RulerAsyncMatcher:
 
         raise StopAsyncIteration
 
-    def _skip_logic(self, rule: Rule) -> bool:
-        if rule.skip_receiver is not None or rule.skip_receiver == self.msg.receiver:
-            return True
+    def _skip_logic(self, rule: Rule, keys: list[str], msg_base: bool = True) -> bool:
+        for k in keys:
+            if msg_base:
+                msg_x = getattr(self.msg, k)
+                rule_skip_x = getattr(rule, f"skip_{k}")
+            else:
+                msg_x = self.msg.receiver_ext.get(k, "")
+                rule_skip_x = getattr(rule, f"skip_receiver_{k}")
 
-        for k in RULS_SKIP_KEYS:
-            msg_x = getattr(self.msg, k)
-            rule_skip_x = getattr(rule, f"skip_{k}")
             if rule_skip_x is not None and fnmatch.fnmatch(msg_x, rule_skip_x):
                 return True
 
         return False
 
-    def _match_logic(self, rule: Rule) -> bool:
-        if rule.match_receiver is not None and rule.match_receiver != self.msg.receiver:
-            return False
+    def _match_logic(self, rule: Rule, keys: list[str], msg_base: bool = True) -> bool:
+        for k in keys:
+            if msg_base:
+                msg_x = getattr(self.msg, k)
+                rule_match_x = getattr(rule, f"match_{k}")
+            else:
+                msg_x = self.msg.receiver_ext.get(k, "")
+                rule_match_x = getattr(rule, f"match_receiver_{k}")
 
-        for k in RULE_MATCH_KEYS:
-            msg_x = getattr(self.msg, k)
-            rule_match_x = getattr(rule, f"match_{k}")
             if rule_match_x is not None and not fnmatch.fnmatch(msg_x, rule_match_x):
                 return False
 

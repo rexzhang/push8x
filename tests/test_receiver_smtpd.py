@@ -9,7 +9,7 @@ import pytest
 from aiosmtpd.smtp import AuthResult, LoginPassword
 
 from push8x.config import Bind, Config, ReceiverSmtpd, ReceiverSmtpdAccount
-from push8x.constans import Msg, MsgContentType, ReceiverType
+from push8x.constans import Msg, MsgContentFormat, ReceiverType
 from push8x.receiver.smtpd import ReceiverSmtpd as ReceiverSmtpdClass
 from push8x.receiver.smtpd import (
     ReceiverSmtpdAuthenticator,
@@ -104,8 +104,8 @@ class TestSmtpdAuthenticator:
         )
 
         assert result == AuthResult(success=True, handled=True)
-        assert hasattr(session, "ext_auth_data")
-        assert session.ext_auth_data["username"] == "test@example.com"
+        assert hasattr(session, "ext_auth_ext")
+        assert session.ext_auth_ext["username"] == "test@example.com"
 
     def test_call_plain_success(self, mocker):
         """Test successful PLAIN authentication."""
@@ -230,8 +230,8 @@ class TestSmtpdAuthenticator:
         )
 
         assert result == AuthResult(success=True, handled=True)
-        assert session.ext_auth_data["from_value"] == "noreply@example.com"
-        assert session.ext_auth_data["mark"] == "mymark"
+        assert session.ext_auth_ext["from_value"] == "noreply@example.com"
+        assert session.ext_auth_ext["mark"] == "mymark"
 
 
 # --- Tests for ReceiverSmtpdHttpAuth ---
@@ -271,7 +271,7 @@ class TestReceiverSmtpdHttpAuth:
             "client-ip": "192.168.1.1",
         }
 
-        result = http_auth.check_headers(headers)
+        result = http_auth.auth_nginx_mail_auth_http(headers)
         assert result.status == HTTPStatus.OK
         assert b"Auth-Status: OK" in result.headers
 
@@ -292,7 +292,7 @@ class TestReceiverSmtpdHttpAuth:
             "client-ip": "192.168.1.1",
         }
 
-        result = http_auth.check_headers(headers)
+        result = http_auth.auth_nginx_mail_auth_http(headers)
         assert result.status == HTTPStatus.OK
         assert b"Auth-Status: Invalid login or password" in result.headers
 
@@ -314,7 +314,7 @@ class TestReceiverSmtpdHttpAuth:
             "client-ip": "192.168.1.1",  # Not in whitelist
         }
 
-        result = http_auth.check_headers(headers)
+        result = http_auth.auth_nginx_mail_auth_http(headers)
         assert result.status == HTTPStatus.OK
         assert b"Auth-Status: Your IP address not in whitelist" in result.headers
 
@@ -336,7 +336,7 @@ class TestReceiverSmtpdHttpAuth:
             "client-ip": "192.168.1.1",  # In whitelist
         }
 
-        result = http_auth.check_headers(headers)
+        result = http_auth.auth_nginx_mail_auth_http(headers)
         assert result.status == HTTPStatus.OK
         assert b"Auth-Status: OK" in result.headers
 
@@ -356,7 +356,7 @@ class TestReceiverSmtpdHttpAuth:
             # Missing auth-user and auth-pass
         }
 
-        result = http_auth.check_headers(headers)
+        result = http_auth.auth_nginx_mail_auth_http(headers)
         assert result.status == HTTPStatus.OK
         assert b"Auth-Status: Invalid login or password" in result.headers
 
@@ -390,7 +390,8 @@ This is a test email body.
     def sample_session(self, mocker):
         """Create a sample SMTP session."""
         session = mocker.MagicMock()
-        session.ext_auth_data = None
+        # Explicitly set ext_auth_ext to empty dict for unauthenticated session
+        session.ext_auth_ext = {}
         return session
 
     @pytest.mark.asyncio
@@ -411,7 +412,7 @@ This is a test email body.
         assert msg.from_value == "sender@example.com"
         assert msg.to_value == "recipient@example.com"
         assert msg.title == "Test Subject"
-        assert msg.content_format == MsgContentType.PLAIN
+        assert msg.content_format == MsgContentFormat.PLAIN
 
     @pytest.mark.asyncio
     async def test_handle_data_with_html(self, handler, sample_session, mocker):
@@ -434,17 +435,17 @@ Content-Type: text/html
         assert result == "250 OK"
 
         msg = handler.q.get_nowait()
-        assert msg.content_format == MsgContentType.HTML
+        assert msg.content_format == MsgContentFormat.HTML
         assert "<html>" in msg.content
 
     @pytest.mark.asyncio
     async def test_handle_data_with_auth(self, handler, sample_envelope, mocker):
         """Test email handling with SMTP AUTH."""
         sample_session = mocker.MagicMock()
-        sample_session.ext_auth_data = {
+        sample_session.ext_auth_ext = {
             "username": "user1@example.com",
             "from_value": "sender@example.com",
-            "receiver_mark": "testmark",
+            "mark": "testmark",
         }
 
         result = await handler.handle_DATA(
@@ -456,7 +457,7 @@ Content-Type: text/html
         assert result == "250 OK"
 
         msg = handler.q.get_nowait()
-        assert msg.receiver_mark == "testmark"
+        assert msg.receiver_ext.get("mark") == "testmark"
 
     @pytest.mark.asyncio
     async def test_handle_data_from_value_mismatch(
@@ -464,10 +465,10 @@ Content-Type: text/html
     ):
         """Test email with mismatched from_value."""
         sample_session = mocker.MagicMock()
-        sample_session.ext_auth_data = {
+        sample_session.ext_auth_ext = {
             "username": "user1@example.com",
             "from_value": "different@example.com",  # Different from envelope
-            "receiver_mark": "",
+            "mark": "",
         }
 
         result = await handler.handle_DATA(
@@ -721,7 +722,7 @@ iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAA
 
         msg = handler.q.get_nowait()
         # Should detect HTML content
-        assert msg.content_format == MsgContentType.HTML
+        assert msg.content_format == MsgContentFormat.HTML
         assert "<html>" in msg.content
         # Should have attachment
         assert len(msg.attachments) == 1
@@ -779,7 +780,7 @@ Body
         # Set XCLIENT data with LOGIN info
         login_info = {
             "from_value": "sender@example.com",
-            "receiver_mark": "proxy_mark",
+            "mark": "proxy_mark",
         }
         session.ext_xclient = {
             "ADDR": "192.168.1.100",
@@ -795,7 +796,7 @@ Body
         assert result == "250 OK"
 
         msg = handler.q.get_nowait()
-        assert msg.receiver_mark == "proxy_mark"
+        assert msg.receiver_ext.get("mark") == "proxy_mark"
 
     @pytest.mark.asyncio
     async def test_handle_data_behind_proxy_from_value_mismatch(
@@ -821,7 +822,7 @@ Body
         # Set XCLIENT with different from_value
         login_info = {
             "from_value": "different@example.com",
-            "receiver_mark": "",
+            "mark": "",
         }
         session.ext_xclient = {
             "ADDR": "192.168.1.100",
@@ -860,7 +861,7 @@ Body
         session = mocker.MagicMock()
         # No from_value in login_info - should not check
         login_info = {
-            "receiver_mark": "my_mark",
+            "mark": "my_mark",
         }
         session.ext_xclient = {
             "ADDR": "192.168.1.100",
@@ -876,7 +877,7 @@ Body
         assert result == "250 OK"
 
         msg = handler.q.get_nowait()
-        assert msg.receiver_mark == "my_mark"
+        assert msg.receiver_ext.get("mark") == "my_mark"
 
 
 # --- Tests for ReceiverSmtpd ---
@@ -1004,6 +1005,8 @@ class TestIntegration:
             Msg(
                 receiver=ReceiverType.SMTPD,
                 receiver_smtpd_session=mocker.MagicMock(),
+                receiver_webhook_headers=None,
+                receiver_ext={},
                 ruler_matched_rules=[],
                 from_name="Sender",
                 from_value="sender@example.com",
@@ -1011,10 +1014,9 @@ class TestIntegration:
                 to_value="recipient@example.com",
                 title="Test",
                 content="Body",
-                content_format=MsgContentType.PLAIN,
+                content_format=MsgContentFormat.PLAIN,
                 attachments=[],
                 ext={},
-                receiver_mark="",
             )
         )
 
@@ -1039,5 +1041,5 @@ class TestIntegration:
         )
 
         assert result.success is True
-        assert session.ext_auth_data["from_value"] == "noreply@example.com"
-        assert session.ext_auth_data["mark"] == "mark1"
+        assert session.ext_auth_ext["from_value"] == "noreply@example.com"
+        assert session.ext_auth_ext["mark"] == "mark1"
