@@ -1,5 +1,5 @@
-from collections.abc import Coroutine
-from typing import TypeAlias
+from collections.abc import Callable, Coroutine
+from typing import Any, TypeAlias
 
 from ..config import Config
 from ..constans import MsgQueue, SenderType
@@ -12,7 +12,9 @@ Sender: TypeAlias = SenderBlackhole | SenderWebhook | SenderSmtp | SenderApprise
 SenderMapping: TypeAlias = dict[str, Sender]
 
 
-def get_sender_mapping(config: Config, workers: list[Coroutine]) -> SenderMapping:
+def get_sender_mapping(
+    config: Config, workers: list[Callable[[], Coroutine[Any, Any, Any]]]
+) -> SenderMapping:
     sender_mapping: SenderMapping = dict()
     for sender_config in config.senders:
         sender_q = MsgQueue()
@@ -37,6 +39,6 @@ def get_sender_mapping(config: Config, workers: list[Coroutine]) -> SenderMappin
                 raise Exception("Codebase error: unknown sender type")
 
         sender_mapping[sender_config.name] = sender_obj
-        workers.append(sender_obj.worker())
+        workers.append(sender_obj.worker)
 
     return sender_mapping

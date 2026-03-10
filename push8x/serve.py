@@ -1,7 +1,8 @@
 import asyncio
 import logging
 import sys
-from collections.abc import Coroutine
+from collections.abc import Callable, Coroutine
+from typing import Any
 
 from loguru import logger
 
@@ -16,29 +17,29 @@ from .worker import worker_supervisor
 
 
 async def server(config: Config):
-    workers: list[Coroutine] = list()
+    workers: list[Callable[[], Coroutine[Any, Any, Any]]] = list()
 
     sender_mapping = get_sender_mapping(config=config, workers=workers)
 
     # init ruler
     ruler_q = MsgQueue()
     ruler = Ruler(config=config, q=ruler_q, sender_mapping=sender_mapping)
-    workers.append(ruler.worker())
+    workers.append(ruler.worker)
 
     # init receivers
     receiver_smtpd = ReceiverSmtpd(config=config, ruler_q=ruler_q)
-    workers.append(receiver_smtpd.worker_listen())
-    workers.append(receiver_smtpd.worker_processer())
+    workers.append(receiver_smtpd.worker_listen)
+    workers.append(receiver_smtpd.worker_processer)
 
     receiver_webhook_q = MsgQueue()
     receiver_webhook = ReceiverWebhook(
         config=config, q=receiver_webhook_q, ruler_q=ruler_q
     )
-    workers.append(receiver_webhook.worker_processer())
+    workers.append(receiver_webhook.worker_processer)
 
     # init http server
     http_server = HttpServer(config=config, webhook_q=receiver_webhook_q)
-    workers.append(http_server.worker())
+    workers.append(http_server.worker)
 
     # go start
     await worker_supervisor(workers)

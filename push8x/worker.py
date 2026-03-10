@@ -1,14 +1,14 @@
 import asyncio
 import functools
-import time
-from collections.abc import Coroutine
+from collections.abc import Callable, Coroutine
+from typing import Any
 
 from loguru import logger
 
 
 def worker_guardian(
     name: str | None = None,
-    max_retries: int = 0,  # -1 表示无限重试
+    max_retries: int = 0,  # -1 means infinite retries
     initial_delay: float = 1.0,
     max_delay: float = 10.0,
 ):
@@ -17,71 +17,73 @@ def worker_guardian(
         async def wrapper(self, *args, **kwargs):
             worker_name = name or getattr(self, "worker_name", func.__name__)
             retries = 0
-            start_time = time.time()
 
             while True:
                 try:
-                    logger.info(f"🚀 Worker [{worker_name}] 启动中...")
+                    logger.info(f"Worker [{worker_name}] starting...")
                     return await func(self, *args, **kwargs)
 
                 except asyncio.CancelledError:
-                    uptime = time.time() - start_time
-                    logger.info(
-                        f"🛑 Worker [{worker_name}] 已取消 (运行耗时: {uptime:.2f}s)"
-                    )
-                    raise  # 必须抛出以响应 asyncio 管理
+                    logger.info(f"Worker [{worker_name}] cancelled")
+                    raise  # Must re-raise to respond to asyncio management
 
                 except Exception:
                     retries += 1
-                    uptime = time.time() - start_time
 
-                    # 关键点：使用 exception 记录完整堆栈
+                    # Key point: use exception to log full stack trace
                     logger.exception(
-                        f"💥 Worker [{worker_name}] 崩溃! "
-                        f"已运行: {uptime:.2f}s, 重试次数: {retries}"
+                        f"Worker [{worker_name}] crashed! retries: {retries}"
                     )
 
                     if max_retries != -1 and retries > max_retries:
                         logger.critical(
-                            f"❌ Worker [{worker_name}] 达到最大重试限制，放弃运行。"
+                            f"Worker [{worker_name}] reached max({max_retries}) retries, giving up."
                         )
                         break
 
-                    # 指数退避算法计算等待时间
+                    # Exponential backoff algorithm to calculate wait time
                     delay = min(initial_delay * (2 ** (retries - 1)), max_delay)
-                    logger.warning(
-                        f"⏳ Worker [{worker_name}] 将在 {delay}s 后尝试重启..."
-                    )
+                    logger.warning(f"Worker [{worker_name}] restarting in {delay}s...")
                     await asyncio.sleep(delay)
 
+        wrapper.worker_name = name  # type: ignore
         return wrapper
 
     return decorator
 
 
-async def worker_supervisor(workers: list[Coroutine]):
+async def worker_supervisor(workers: list[Callable[[], Coroutine[Any, Any, Any]]]):
     try:
         async with asyncio.TaskGroup() as tg:
-            tasks = [tg.create_task(worker) for worker in workers]
+            tasks = []
+            for worker in workers:
+                worker_name = getattr(worker, "worker_name", None)
+                task = tg.create_task(worker(), name=worker_name)
+                tasks.append(task)
 
             done, pending = await asyncio.wait(
                 tasks, return_when=asyncio.FIRST_COMPLETED
             )
 
             first_task = done.pop()
+            task_name = first_task.get_name()
             try:
                 res = first_task.result()
-                print(f"📢 [观测点] 第一个任务正常结束: {res}")
+                logger.error(
+                    f"Worker Supervisor: worker [{task_name}] completed normally: {res}"
+                )
             except Exception as e:
-                print(f"🚨 [观测点] 第一个任务异常结束: {e}")
+                logger.error(
+                    f"Worker Supervisor: worker [{task_name}] ended with exception: {e}"
+                )
 
-            print("🛑 正在通知所有其他 Worker 退出...")
+            logger.warning("Worker Supervisor: notifying all other workers to exit...")
             for p in pending:
                 p.cancel()
 
     except* Exception as eg:
         for e in eg.exceptions:
             if not isinstance(e, asyncio.CancelledError):
-                print(f"⚠️ 捕获到子任务异常: {e}")
+                logger.error(f"Worker Supervisor: Caught worker exception: {e}")
 
-    print("\n[系统状态] 所有任务已清理。")
+    logger.info("Worker Supervisor exiting.")
