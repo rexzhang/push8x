@@ -25,7 +25,7 @@ jobs:
 
       - name: Install Cosign
         # https://github.com/sigstore/cosign-installer
-        uses: sigstore/cosign-installer@v4
+        uses: sigstore/cosign-installer@v4.1.0
 
       # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action
